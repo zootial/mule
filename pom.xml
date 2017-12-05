@@ -209,7 +209,7 @@
         <jaxbApiVersion>2.1</jaxbApiVersion>
         <javassistVersion>3.7.ga</javassistVersion>
         <javaMailVersion>1.4.3</javaMailVersion>
-        <javaXmlBindVersion>2.1.9</javaXmlBindVersion>
+        <javaXmlBindVersion>2.3.0-MULE-001</javaXmlBindVersion>
         <javaXmlWsVersion>2.2.1</javaXmlWsVersion>
         <jaxenVersion>1.1.1</jaxenVersion>
         <jbossTsVersion>4.15.0.Final</jbossTsVersion>
@@ -744,13 +744,13 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>com.sun.xml.bind</groupId>
+                <groupId>org.mule.glassfish.jaxb</groupId>
                 <artifactId>jaxb-xjc</artifactId>
                 <version>${javaXmlBindVersion}</version>
             </dependency>
             <dependency>
-                <groupId>com.sun.xml.bind</groupId>
-                <artifactId>jaxb-impl</artifactId>
+                <groupId>org.mule.glassfish.jaxb</groupId>
+                <artifactId>jaxb-runtime</artifactId>
                 <version>${javaXmlBindVersion}</version>
             </dependency>
             <dependency>
