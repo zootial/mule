@@ -13,6 +13,7 @@ import static org.mule.module.http.api.HttpConstants.Protocols.HTTP;
 import static org.mule.module.http.api.HttpConstants.Protocols.HTTPS;
 import static org.mule.module.http.api.HttpHeaders.Names.EXPECT;
 import static org.mule.module.http.api.HttpHeaders.Values.CONTINUE;
+import static org.mule.module.http.api.HttpConstants.Methods.HEAD;
 import static org.mule.module.http.internal.listener.grizzly.ExecutorPerServerAddressIOStrategy.EXECUTOR_REJECTED_ATTRIBUTE;
 import static org.mule.module.http.internal.listener.grizzly.MuleSslFilter.SSL_SESSION_ATTRIBUTE_KEY;
 import org.mule.module.http.internal.domain.InputStreamHttpEntity;
@@ -23,6 +24,9 @@ import org.mule.module.http.internal.listener.RequestHandlerProvider;
 import org.mule.module.http.internal.listener.async.HttpResponseReadyCallback;
 import org.mule.module.http.internal.listener.async.RequestHandler;
 import org.mule.module.http.internal.listener.async.ResponseStatusCallback;
+
+import org.mule.module.http.internal.domain.EmptyHttpEntity;
+import org.mule.module.http.internal.domain.response.HttpResponseBuilder;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -104,6 +108,15 @@ public class GrizzlyRequestDispatcherFilter extends BaseFilter
             {
                 try
                 {
+                    //If the HTTP Method is HEAD we don't want to process the whole body only to be discarted later
+                    if(httpRequest.getMethod().equals(HEAD.name()))
+                    {
+                        if (httpResponse.getEntity() instanceof InputStreamHttpEntity)
+                        {
+                            ((InputStreamHttpEntity) httpResponse.getEntity()).getInputStream().close();
+                        }
+                        httpResponse = new HttpResponseBuilder(httpResponse).setEntity(new EmptyHttpEntity()).build();
+                    }
                     if (httpResponse.getEntity() instanceof InputStreamHttpEntity)
                     {
                         new ResponseStreamingCompletionHandler(ctx, request, httpResponse, responseStatusCallback).start();
