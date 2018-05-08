@@ -54,9 +54,7 @@ public class CxfInboundMessageProcessorTestCase extends AbstractMuleContextTestC
         MuleEvent event = getTestEvent(msg, getTestInboundEndpoint(MessageExchangePattern.REQUEST_RESPONSE));
         
         MuleEvent response = processor.process(event);
-        
         Object payload = response.getMessage().getPayload();
-        assertTrue(payload instanceof OutputHandler);
         
         ((OutputHandler) payload).write(response, System.out);
         assertTrue(gotEvent);
@@ -93,13 +91,13 @@ public class CxfInboundMessageProcessorTestCase extends AbstractMuleContextTestC
         CxfConfiguration config = new CxfConfiguration();
         config.setMuleContext(muleContext);
         config.initialise();
-        
+
         // Build a CXF MessageProcessor
         WebServiceMessageProcessorBuilder builder = new WebServiceMessageProcessorBuilder();
         builder.setConfiguration(config);
         builder.setServiceClass(Echo.class);
         builder.setMuleContext(muleContext);
-        
+
         CxfInboundMessageProcessor processor = builder.build();
         processor.start();
         return processor;

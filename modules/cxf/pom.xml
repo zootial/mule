@@ -18,7 +18,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.cxf</groupId>
+                <groupId>org.mule.apache.cxf</groupId>
                 <artifactId>cxf-codegen-plugin</artifactId>
                 <version>${cxfVersion}</version>
                 <executions>
@@ -86,7 +86,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-core</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -130,7 +130,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-simple</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -170,7 +170,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxws</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -210,7 +210,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-databinding-aegis</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -250,7 +250,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-databinding-jaxb</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -282,7 +282,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-databinding-jibx</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -326,7 +326,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-transports-local</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -366,7 +366,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-ws-security</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -414,7 +414,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-ws-rm</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -463,7 +463,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-ws-addr</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -512,7 +512,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-transports-http</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -553,7 +553,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-wstx-msv-validation</artifactId>
             <version>${cxfVersion}</version>
             <exclusions>
@@ -633,14 +633,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!--  We should reenable this as it makes CXF faster
-        <dependency>
-            <groupId>asm</groupId>
-            <artifactId>asm.osgi</artifactId>
-            <version>${asmVersion}</version>
-        </dependency>
-         -->
-
         <dependency>
             <groupId>net.sf.saxon</groupId>
             <artifactId>Saxon-HE</artifactId>
@@ -673,13 +665,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-testutils</artifactId>
             <version>${cxfVersion}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.cxf</groupId>
+            <groupId>org.mule.apache.cxf</groupId>
             <artifactId>cxf-rt-transports-http-jetty</artifactId>
             <version>${cxfVersion}</version>
             <scope>test</scope>

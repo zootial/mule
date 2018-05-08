@@ -187,7 +187,7 @@
         but the PGP module would need some work in order to use it -->
         <cryptixJceVersion>20050328</cryptixJceVersion>
         <cryptixVersion>20050405</cryptixVersion>
-        <cxfVersion>2.7.15</cxfVersion>
+        <cxfVersion>2.7.19-MULE-004</cxfVersion>
         <derbyVersion>10.11.1.1</derbyVersion>
         <dom4jVersion>1.6.1</dom4jVersion>
         <flatpackVersion>3.1.1</flatpackVersion>
@@ -220,7 +220,7 @@
         <jffiVersion>1.2.9</jffiVersion>
         <jodaTimeVersion>2.5</jodaTimeVersion>
         <jschVersion>0.1.51</jschVersion>
-        <junitVersion>4.11</junitVersion>
+        <junitVersion>4.13-SNAPSHOT</junitVersion>
         <log4jVersion>2.1</log4jVersion>
         <disruptorVersion>3.3.0</disruptorVersion>
         <maven.buildnumber.plugin.version>1.1</maven.buildnumber.plugin.version>
@@ -243,9 +243,9 @@
         <saxonVersion>9.6.0-1</saxonVersion>
         <slf4jVersion>1.7.7</slf4jVersion>
         <smackVersion>3.1.0</smackVersion>
-        <springOsgiVersion>1.0.2</springOsgiVersion>
-        <springVersion>4.1.6.RELEASE</springVersion>
-        <springSecurityVersion>4.0.1.RELEASE</springSecurityVersion>
+        <springVersion>4.3.16.RELEASE</springVersion>
+        <springSecurityVersion>4.2.5.RELEASE</springSecurityVersion>
+        <springLdapVersion>2.3.2.RELEASE</springLdapVersion>
         <sshCoreVersion>0.6.0</sshCoreVersion>
         <staxUtilsVersion>20080702</staxUtilsVersion>
         <staxApiVersion>3.1.4</staxApiVersion>

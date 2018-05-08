@@ -6,13 +6,34 @@
  */
 package org.mule.test.integration.domain.xa;
 
+import org.hamcrest.core.IsInstanceOf;
+import org.junit.rules.ExpectedException;
 import org.mule.api.MuleRuntimeException;
+import org.mule.api.config.ConfigurationException;
 import org.mule.tck.junit4.DomainFunctionalTestCase;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
+
 
 public class XaTransactionManagerTestCase extends DomainFunctionalTestCase
 {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    @Override
+    public void setUpMuleContexts() throws Exception
+    {
+        thrown.expect(ConfigurationException.class);
+        thrown.expect(hasMessage(containsString("No qualifying bean of type 'org.mule.api.transaction.TransactionManagerFactory' available: expected single matching bean but found 2:")));
+//        thrown.expect(ThrowableRootCauseMatcher.hasRootCause(IsInstanceOf.<ConfigurationException> instanceOf(NoUniqueBeanDefinitionException.class)));
+        super.setUpMuleContexts();
+    }
 
     public static final String APPLICATION_NAME = "app";
 
