@@ -58,9 +58,6 @@ public class DefaultPolicyManager implements PolicyManager, Initialisable {
   private Collection<OperationPolicyParametersTransformer> operationPolicyParametersTransformerCollection = emptyList();
   private Collection<SourcePolicyParametersTransformer> sourcePolicyParametersTransformerCollection = emptyList();
 
-  @Inject
-  private PolicyNextChaining policyNextChaining;
-
   private final ConcurrentHashMap<ComponentIdentifier, Optional<SourcePolicyParametersTransformer>> sourceParametersTransformers =
       new ConcurrentHashMap<>();
   private final ConcurrentHashMap<ComponentIdentifier, Optional<OperationPolicyParametersTransformer>> operationParametersTransformers =
