@@ -15,6 +15,7 @@
 
     <properties>
         <skipExportTests>false</skipExportTests>
+        <springJmsVersion>4.3.10.RELEASE</springJmsVersion>
     </properties>
 
     <build>
@@ -48,7 +49,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jms</artifactId>
-            <version>${springVersion}</version>
+            <version>${springJmsVersion}</version>
         </dependency>
 
         <!-- Unit tests only -->
