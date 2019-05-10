@@ -794,6 +794,7 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
                 if (!deferredCloseQueue.isEmpty())
                 {
                     deferredCloseThread.waitForEmptyQueueOrTimeout(20, SECONDS);
+                    deferredCloseQueue.clear();
                 }
                 deferredCloseThread.interrupt();
                 // Clear all remaining closables
