@@ -1596,9 +1596,4 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
     {
         responseTimeoutTimer.schedule(timerTask, timeout);
     }
-
-    public void setHandlingException(boolean isHandling)
-    {
-        isHandlingException.set(isHandling);
-    }
 }
