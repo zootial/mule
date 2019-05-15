@@ -203,7 +203,7 @@
         <hibernateVersion>3.6.0.Final</hibernateVersion>
         <hk2Version>2.3.0-b05</hk2Version>
         <jacksonVersion>1.9.11</jacksonVersion>
-        <jackson2Version>2.4.3</jackson2Version>
+        <jackson2Version>2.9.8</jackson2Version>
         <javax.inject.version>1</javax.inject.version>
         <jerseyVersion>2.11</jerseyVersion>
         <jaxbApiVersion>2.1</jaxbApiVersion>
@@ -252,7 +252,7 @@
         <staxonVersion>1.2</staxonVersion>
         <sxcVersion>0.7.3</sxcVersion>
         <testFtpServerVersion>1.0.6</testFtpServerVersion>
-        <tomcatVersion>6.0.44</tomcatVersion>
+        <tomcatVersion>6.0.53</tomcatVersion>
         <woodstoxVersion>4.4.1</woodstoxVersion>
         <wrapperVersion>3.2.3</wrapperVersion>
         <xalanVersion>2.7.2</xalanVersion>
