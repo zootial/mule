@@ -80,6 +80,10 @@ public class DefaultMuleSecurityManager extends AbstractComponent implements Sec
         Authentication result = null;
         try {
           result = provider.authenticate(authentication);
+        } catch (UnauthorisedException e) {
+          if (!iter.hasNext()) {
+            throw new UnauthorisedException(authorizationAttemptFailed(), e);
+          }
         } catch (SecurityException e) {
           if (!iter.hasNext()) {
             throw new SecurityException(authorizationAttemptFailed(), e);
