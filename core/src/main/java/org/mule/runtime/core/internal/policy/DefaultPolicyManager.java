@@ -32,6 +32,7 @@ import org.mule.runtime.policy.api.OperationPolicyPointcutParametersFactory;
 import org.mule.runtime.policy.api.PolicyPointcutParameters;
 import org.mule.runtime.policy.api.SourcePolicyPointcutParametersFactory;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,9 +52,6 @@ public class DefaultPolicyManager implements PolicyManager, Initialisable {
 
   @Inject
   private PolicyStateHandler policyStateHandler;
-
-  private Collection<OperationPolicyParametersTransformer> operationPolicyParametersTransformerCollection = emptyList();
-  private Collection<SourcePolicyParametersTransformer> sourcePolicyParametersTransformerCollection = emptyList();
 
   private final ConcurrentHashMap<ComponentIdentifier, Optional<SourcePolicyParametersTransformer>> sourceParametersTransformers =
       new ConcurrentHashMap<>();
