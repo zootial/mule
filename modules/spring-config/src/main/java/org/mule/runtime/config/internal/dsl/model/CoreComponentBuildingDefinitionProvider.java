@@ -8,17 +8,9 @@
 package org.mule.runtime.config.internal.dsl.model;
 
 import static java.lang.Boolean.parseBoolean;
-import static java.lang.String.valueOf;
 import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.ArrayUtils.addAll;
-import static org.mule.runtime.api.config.PoolingProfile.DEFAULT_MAX_POOL_ACTIVE;
-import static org.mule.runtime.api.config.PoolingProfile.DEFAULT_MAX_POOL_IDLE;
-import static org.mule.runtime.api.config.PoolingProfile.DEFAULT_MAX_POOL_WAIT;
-import static org.mule.runtime.api.config.PoolingProfile.DEFAULT_POOL_EXHAUSTED_ACTION;
-import static org.mule.runtime.api.config.PoolingProfile.DEFAULT_POOL_INITIALISATION_POLICY;
-import static org.mule.runtime.api.config.PoolingProfile.POOL_EXHAUSTED_ACTIONS;
-import static org.mule.runtime.api.config.PoolingProfile.POOL_INITIALISATION_POLICIES;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.mule.runtime.api.tx.TransactionType.LOCAL;
 import static org.mule.runtime.api.util.Preconditions.checkState;
@@ -59,7 +51,6 @@ import static org.mule.runtime.extension.api.declaration.type.StreamingStrategyT
 import static org.mule.runtime.internal.dsl.DslConstants.CORE_PREFIX;
 import static org.mule.runtime.internal.dsl.DslConstants.CRON_STRATEGY_ELEMENT_IDENTIFIER;
 import static org.mule.runtime.internal.dsl.DslConstants.FIXED_FREQUENCY_STRATEGY_ELEMENT_IDENTIFIER;
-import static org.mule.runtime.internal.dsl.DslConstants.POOLING_PROFILE_ELEMENT_IDENTIFIER;
 import static org.mule.runtime.internal.dsl.DslConstants.RECONNECTION_ELEMENT_IDENTIFIER;
 import static org.mule.runtime.internal.dsl.DslConstants.RECONNECT_ELEMENT_IDENTIFIER;
 import static org.mule.runtime.internal.dsl.DslConstants.RECONNECT_FOREVER_ELEMENT_IDENTIFIER;
@@ -369,8 +360,7 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
 
     Builder processorRefBuilder = baseDefinition
         .withTypeDefinition(fromType(AnnotatedProcessor.class))
-        .withObjectFactoryType(FlowRefFactoryBean.class)
-        .withSetterParameterDefinition("muleContext", fromReferenceObject(MuleContext.class).build());
+        .withObjectFactoryType(FlowRefFactoryBean.class);
 
     componentBuildingDefinitions.add(processorRefBuilder
         .withIdentifier(FLOW_REF)
