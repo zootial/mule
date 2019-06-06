@@ -59,7 +59,6 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Iterator;
 
 import org.apache.commons.io.FileUtils;
 import org.hamcrest.BaseMatcher;
@@ -270,6 +269,11 @@ public abstract class DeployableArtifactDescriptorFactoryTestCase<D extends Depl
   @Test
   public void classLoaderModelWithPluginDependencyAndAdditionalDependenciesLightweight() throws Exception {
     assertClassLoaderModelWithPluginDependencyAndAdditionalDependencies("/plugin-dependency-with-additional-dependencies-lightweight");
+  }
+
+  @Test
+  public void classLoaderModelWithPluginDependencyAndAdditionalDependenciesLightweighUseLocalRepository() throws Exception {
+    assertClassLoaderModelWithPluginDependencyAndAdditionalDependencies("/plugin-dependency-with-additional-dependencies-lightweight-local-repository");
   }
 
   @Test
