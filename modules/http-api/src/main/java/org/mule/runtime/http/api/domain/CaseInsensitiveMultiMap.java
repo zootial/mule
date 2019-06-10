@@ -31,7 +31,7 @@ public class CaseInsensitiveMultiMap extends MultiMap<String, String> implements
   protected final boolean optimized;
 
   public CaseInsensitiveMultiMap() {
-    this(true);
+    this(false);
   }
 
   public CaseInsensitiveMultiMap(boolean optimized) {
