@@ -8,8 +8,6 @@
 package org.mule.runtime.http.api.domain;
 
 import static java.util.Collections.unmodifiableMap;
-import static org.mule.runtime.api.metadata.DataType.MULTI_MAP_STRING_STRING;
-
 import org.mule.api.annotation.NoExtend;
 import org.mule.runtime.api.el.DataTypeAware;
 import org.mule.runtime.api.metadata.DataType;
@@ -74,6 +72,10 @@ public class CaseInsensitiveMultiMap extends MultiMap<String, String> implements
 
   @Override
   public DataType getDataType() {
-    return MULTI_MAP_STRING_STRING;
+    return DataType.builder()
+        .mapType(CaseInsensitiveMultiMap.class)
+        .keyType(String.class)
+        .valueType(String.class)
+        .build();
   }
 }

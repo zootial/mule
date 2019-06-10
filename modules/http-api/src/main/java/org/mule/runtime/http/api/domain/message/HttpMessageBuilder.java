@@ -59,6 +59,10 @@ public abstract class HttpMessageBuilder<B extends HttpMessageBuilder, M extends
    * @return this builder
    */
   public B headers(MultiMap<String, String> headersMap) {
+    if (headers.isEmpty() && headersMap instanceof CaseInsensitiveMultiMap) {
+      this.headers = headersMap;
+      return (B) this;
+    }
     this.headers.putAll(headersMap);
     return (B) this;
   }
