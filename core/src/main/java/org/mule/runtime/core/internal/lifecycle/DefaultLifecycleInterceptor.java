@@ -10,6 +10,7 @@ import static com.google.common.cache.CacheBuilder.newBuilder;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.mule.runtime.core.internal.lifecycle.phases.LifecyclePhase;
 import org.slf4j.Logger;
@@ -26,8 +27,8 @@ public class DefaultLifecycleInterceptor implements LifecycleInterceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultLifecycleInterceptor.class);
 
-  private Map<Object, Object> trackingPhaseFailureObjects = newBuilder().weakKeys().weakValues().<Object, Object>build().asMap();
-  private Map<Object, Object> processedObjects = newBuilder().weakKeys().weakValues().<Object, Object>build().asMap();
+  private Set<Object> trackingPhaseFailureObjects = newBuilder().weakKeys().<Object, Object>build().asMap().keySet();
+  private Set<Object> processedObjects = newBuilder().weakKeys().<Object, Object>build().asMap().keySet();
 
   private final String initialPhase;
   private final String finalPhase;
@@ -60,7 +61,7 @@ public class DefaultLifecycleInterceptor implements LifecycleInterceptor {
   @Override
   public boolean beforePhaseExecution(LifecyclePhase phase, Object object) {
     if (isFinalPhase(phase) && (initialPhaseLifecycleClass.isAssignableFrom(object.getClass()))) {
-      if (trackingPhaseFailureObjects.containsKey(object)) {
+      if (trackingPhaseFailureObjects.contains(object)) {
         if (LOGGER.isDebugEnabled()) {
           LOGGER.debug(String.format("Skipping %s lifecycle phase on object because %s phase failed before it could be applied "
               + "on it. Object is: %s", finalPhase, initialPhase, object));
@@ -69,9 +70,9 @@ public class DefaultLifecycleInterceptor implements LifecycleInterceptor {
       }
     }
     if (isFinalPhase(phase) && (initialPhaseLifecycleClass.isAssignableFrom(object.getClass()))) {
-      return processedObjects.containsKey(object);
+      return processedObjects.contains(object);
     }
-    processedObjects.put(object, object);
+    processedObjects.add(object);
     return true;
   }
 
@@ -87,7 +88,7 @@ public class DefaultLifecycleInterceptor implements LifecycleInterceptor {
   @Override
   public void afterPhaseExecution(LifecyclePhase phase, Object object, Optional<Exception> exceptionThrownOptional) {
     if (isTrackingPhase(phase) && exceptionThrownOptional.isPresent()) {
-      trackingPhaseFailureObjects.put(object, object);
+      trackingPhaseFailureObjects.add(object);
     }
   }
 
