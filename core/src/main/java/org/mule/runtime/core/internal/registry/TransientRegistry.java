@@ -13,6 +13,7 @@ import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_NOTIFICATIO
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_REGISTRY;
 
 import org.mule.runtime.api.exception.ErrorTypeRepository;
+
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.i18n.I18nMessageFactory;
 import org.mule.runtime.api.lifecycle.Disposable;
@@ -27,12 +28,12 @@ import org.mule.runtime.core.privileged.PrivilegedMuleContext;
 import org.mule.runtime.core.privileged.endpoint.LegacyImmutableEndpoint;
 import org.mule.runtime.core.privileged.exception.ErrorTypeLocator;
 import org.mule.runtime.core.privileged.registry.InjectProcessor;
-import org.mule.runtime.core.privileged.registry.ObjectProcessor;
-import org.mule.runtime.core.privileged.registry.PreInitProcessor;
 import org.mule.runtime.core.privileged.registry.RegistrationException;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections.functors.InstanceofPredicate;
@@ -47,6 +48,8 @@ public abstract class TransientRegistry extends AbstractRegistry {
 
   private final RegistryMap registryMap = new RegistryMap(logger);
 
+  private List<InjectProcessor> injectProcessors = new ArrayList<>();
+
   public TransientRegistry(String id, MuleContext muleContext, LifecycleInterceptor lifecycleInterceptor) {
     super(id, muleContext, lifecycleInterceptor);
     putDefaultEntriesIntoRegistry();
@@ -55,6 +58,10 @@ public abstract class TransientRegistry extends AbstractRegistry {
   private void putDefaultEntriesIntoRegistry() {
     Map<String, Object> processors = new HashMap<>();
     if (muleContext != null) {
+      injectProcessors.add(new RegistryProcessor(muleContext));
+      injectProcessors.add(new LifecycleStateInjectorProcessor(getLifecycleManager().getState()));
+      injectProcessors.add(new MuleContextProcessor(muleContext));
+
       processors.put(OBJECT_MULE_CONTEXT, muleContext);
       processors.put(OBJECT_REGISTRY, new DefaultRegistry(muleContext));
       processors.put("_muleContextProcessor", new MuleContextProcessor(muleContext));
@@ -64,8 +71,6 @@ public abstract class TransientRegistry extends AbstractRegistry {
       processors.put(OBJECT_NOTIFICATION_HANDLER, ((PrivilegedMuleContext) muleContext).getNotificationManager());
     }
 
-    processors.put("_muleLifecycleStateInjectorProcessor", new LifecycleStateInjectorProcessor(getLifecycleManager().getState()));
-    processors.put("_muleLifecycleManager", getLifecycleManager());
     registryMap.putAll(processors);
   }
 
@@ -94,26 +99,6 @@ public abstract class TransientRegistry extends AbstractRegistry {
       }
     }
   }
-
-  protected Map<String, Object> applyProcessors(Map<String, Object> objects) {
-    if (objects == null || !isInitialised()) {
-      return null;
-    }
-
-    Map<String, Object> results = new HashMap<>();
-    for (Map.Entry<String, Object> entry : objects.entrySet()) {
-      // We do this inside the loop in case the map contains ObjectProcessors
-      Collection<ObjectProcessor> processors = lookupObjects(ObjectProcessor.class);
-      for (ObjectProcessor processor : processors) {
-        Object result = processor.process(entry.getValue());
-        if (result != null) {
-          results.put(entry.getKey(), result);
-        }
-      }
-    }
-    return results;
-  }
-
 
   @Override
   public void registerObjects(Map<String, Object> objects) throws RegistrationException {
@@ -193,27 +178,13 @@ public abstract class TransientRegistry extends AbstractRegistry {
     return object;
   }
 
-  protected Object applyProcessors(Object object, Object metadata) {
+  protected Object applyProcessors(Object object) {
     Object theObject = object;
 
-    if (!hasFlag(metadata, MuleRegistry.INJECT_PROCESSORS_BYPASS_FLAG)) {
-      // Process injectors first
-      Collection<InjectProcessor> injectProcessors = lookupObjects(InjectProcessor.class);
-      for (InjectProcessor processor : injectProcessors) {
-        theObject = processor.process(theObject);
-      }
+    for (InjectProcessor processor : injectProcessors) {
+      theObject = processor.process(theObject);
     }
 
-    if (!hasFlag(metadata, MuleRegistry.PRE_INIT_PROCESSORS_BYPASS_FLAG)) {
-      // Then any other processors
-      Collection<PreInitProcessor> processors = lookupObjects(PreInitProcessor.class);
-      for (PreInitProcessor processor : processors) {
-        theObject = processor.process(theObject);
-        if (theObject == null) {
-          return null;
-        }
-      }
-    }
     return theObject;
   }
 
@@ -221,18 +192,10 @@ public abstract class TransientRegistry extends AbstractRegistry {
    * Allows for arbitary registration of transient objects
    *
    * @param key
-   * @param value
+   * @param object
    */
   @Override
-  public void registerObject(String key, Object value) throws RegistrationException {
-    registerObject(key, value, Object.class);
-  }
-
-  /**
-   * Allows for arbitrary registration of transient objects
-   */
-  @Override
-  public void registerObject(String key, Object object, Object metadata) throws RegistrationException {
+  public void registerObject(String key, Object object) throws RegistrationException {
     checkDisposed();
     if (StringUtils.isBlank(key)) {
       throw new RegistrationException(I18nMessageFactory.createStaticMessage("Attempt to register object with no key"));
@@ -243,28 +206,23 @@ public abstract class TransientRegistry extends AbstractRegistry {
     }
 
     logger.debug("applying processors");
-    object = applyProcessors(object, metadata);
+    object = applyProcessors(object);
     if (object == null) {
       return;
     }
 
-    doRegisterObject(key, object, metadata);
+    doRegisterObject(key, object);
   }
 
   protected <T> T doGet(String key) {
     return registryMap.get(key);
   }
 
-  protected void doRegisterObject(String key, Object object, Object metadata) throws RegistrationException {
+  protected void doRegisterObject(String key, Object object) throws RegistrationException {
     doPut(key, object);
 
     try {
-      if (!hasFlag(metadata, MuleRegistry.LIFECYCLE_BYPASS_FLAG)) {
-        if (logger.isDebugEnabled()) {
-          logger.debug("applying lifecycle to object: " + object);
-        }
-        getLifecycleManager().applyCompletedPhases(object);
-      }
+      getLifecycleManager().applyCompletedPhases(object);
     } catch (MuleException e) {
       throw new RegistrationException(e);
     }
@@ -279,10 +237,6 @@ public abstract class TransientRegistry extends AbstractRegistry {
       throw new RegistrationException(I18nMessageFactory
           .createStaticMessage("Cannot register objects on the registry as the context is disposed"));
     }
-  }
-
-  protected boolean hasFlag(Object metaData, int flag) {
-    return !(metaData == null || !(metaData instanceof Integer)) && ((Integer) metaData & flag) != 0;
   }
 
   @Override

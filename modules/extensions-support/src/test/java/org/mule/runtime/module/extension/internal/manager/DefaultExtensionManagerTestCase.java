@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -50,7 +49,6 @@ import org.mule.runtime.api.meta.model.operation.OperationModel;
 import org.mule.runtime.api.meta.model.parameter.ParameterModel;
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.extension.ExtensionManager;
-import org.mule.runtime.core.api.transformer.Transformer;
 import org.mule.runtime.core.internal.connection.ConnectionManagerAdapter;
 import org.mule.runtime.core.internal.context.MuleContextWithRegistry;
 import org.mule.runtime.core.internal.metadata.MuleMetadataService;
@@ -346,7 +344,7 @@ public class DefaultExtensionManagerTestCase extends AbstractMuleTestCase {
     mockParameters(extension1ConfigurationModel, parameter, parameterOfRepeatedEnumType);
     extensionsManager.registerExtension(extensionModel1);
 
-    verify(muleContext.getRegistry()).registerObject(anyString(), any(StringToEnum.class), eq(Transformer.class));
+    verify(muleContext.getRegistry()).registerObject(anyString(), any(StringToEnum.class));
   }
 
   @Test
@@ -362,7 +360,7 @@ public class DefaultExtensionManagerTestCase extends AbstractMuleTestCase {
     mockParameters(extension1ConfigurationModel, parameter);
     extensionsManager.registerExtension(extensionModel1);
 
-    verify(muleContext.getRegistry()).registerObject(anyString(), any(StringToEnum.class), eq(Transformer.class));
+    verify(muleContext.getRegistry()).registerObject(anyString(), any(StringToEnum.class));
   }
 
   private void makeExtension1ConfigurationNotImplicit() {
