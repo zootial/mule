@@ -6,10 +6,16 @@
  */
 package org.mule.runtime.module.extension.tooling.internal;
 
+import static org.mule.metadata.api.builder.BaseTypeBuilder.create;
+import static org.mule.metadata.api.model.MetadataFormat.JAVA;
 import static org.mule.runtime.api.meta.Category.SELECT;
 import static org.mule.runtime.api.meta.model.connection.ConnectionManagementType.NONE;
 import static org.mule.runtime.api.meta.model.parameter.ParameterGroupModel.DEFAULT_GROUP_NAME;
 
+import org.mule.metadata.api.annotation.TypeIdAnnotation;
+import org.mule.metadata.api.builder.NumberTypeBuilder;
+import org.mule.metadata.api.model.NumberType;
+import org.mule.metadata.java.api.annotation.ClassInformationAnnotation;
 import org.mule.runtime.api.meta.model.XmlDslModel;
 import org.mule.runtime.api.meta.model.declaration.fluent.ConfigurationDeclarer;
 import org.mule.runtime.api.meta.model.declaration.fluent.ConnectionProviderDeclarer;
@@ -95,5 +101,12 @@ public class TestToolingExtensionDeclarer extends TestBaseDeclarer {
 
   public void setConnectionProviderFactory(ConnectionProviderFactory connectionProviderFactory) {
     this.connectionProviderFactory = connectionProviderFactory;
+  }
+
+  @Override
+  protected NumberType getNumberType() {
+    NumberTypeBuilder builder = create(JAVA).numberType().with(new TypeIdAnnotation(Integer.class.getName()));
+    builder.with(new ClassInformationAnnotation(Integer.class));
+    return builder.build();
   }
 }

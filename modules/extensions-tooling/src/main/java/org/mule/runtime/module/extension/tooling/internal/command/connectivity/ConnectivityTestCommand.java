@@ -10,9 +10,9 @@ import static org.mule.runtime.api.connection.ConnectionValidationResult.failure
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.disposeIfNeeded;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.initialiseIfNeeded;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.startIfNeeded;
+import static org.mule.runtime.module.extension.api.util.MuleExtensionUtils.getInitialiserEvent;
 import static org.mule.runtime.module.extension.tooling.internal.util.SdkToolingUtils.stopAndDispose;
 import static org.mule.runtime.module.extension.tooling.internal.util.SdkToolingUtils.toResolverSet;
-import static org.mule.runtime.module.extension.tooling.internal.util.SdkToolingUtils.toResolverSetResult;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import org.mule.runtime.api.connection.ConnectionProvider;
@@ -24,6 +24,7 @@ import org.mule.runtime.core.api.el.ExpressionManager;
 import org.mule.runtime.module.extension.internal.runtime.config.ConnectionProviderObjectBuilder;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSet;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSetResult;
+import org.mule.runtime.module.extension.internal.runtime.resolver.ValueResolvingContext;
 import org.mule.runtime.module.extension.tooling.internal.ToolingExpressionManager;
 import org.mule.runtime.module.extension.tooling.internal.command.SdkToolingCommand;
 import org.mule.runtime.module.extension.tooling.internal.command.SdkToolingContext;
@@ -65,8 +66,10 @@ public class ConnectivityTestCommand implements SdkToolingCommand<ConnectionVali
     final ExpressionManager expressionManager = new ToolingExpressionManager();
     final MuleContext muleContext = context.getMuleContext();
 
-    ResolverSet resolverSet = toResolverSet(context.getParameters(), muleContext);
-    ResolverSetResult result = toResolverSetResult(context.getParameters());
+    ResolverSet resolverSet = toResolverSet(context.getParameters(), connectionProviderModel, muleContext);
+    ResolverSetResult result = resolverSet.resolve(ValueResolvingContext.builder(getInitialiserEvent(muleContext)).build());
+
+    //ResolverSetResult result = toResolverSetResult(context.getParameters());
 
     ConnectionProviderObjectBuilder<Object> objectBuilder = new ToolingConnectionProviderBuilder(connectionProviderModel,
                                                                                                  resolverSet,
