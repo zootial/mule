@@ -7,7 +7,9 @@
 package org.mule.runtime.module.extension.tooling.internal.bootstrap;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.assertThat;
 
 import org.mule.runtime.core.api.MuleContext;
@@ -27,5 +29,6 @@ public class ToolingMuleContextFactoryTestCase extends AbstractMuleTestCase {
     assertThat(muleContext.isInitialised(), is(true));
     assertThat(muleContext.isStarted(), is(true));
     assertThat(muleContext.getExpressionManager(), is(notNullValue()));
+    assertThat(muleContext.getConfiguration().getDefaultEncoding(), is(not((isEmptyString()))));
   }
 }

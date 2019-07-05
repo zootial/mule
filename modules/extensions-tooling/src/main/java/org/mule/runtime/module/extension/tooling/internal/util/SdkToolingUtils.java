@@ -11,17 +11,18 @@ import static java.util.stream.Collectors.toMap;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.disposeIfNeeded;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.stopIfNeeded;
 import static org.mule.runtime.extension.api.util.ExtensionMetadataTypeUtils.getType;
+import static org.mule.runtime.module.extension.internal.runtime.resolver.ParametersResolver.fromValues;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import org.mule.runtime.api.exception.MuleException;
-import org.mule.runtime.api.lifecycle.InitialisationException;
 import org.mule.runtime.api.meta.model.parameter.ParameterModel;
 import org.mule.runtime.api.meta.model.parameter.ParameterizedModel;
 import org.mule.runtime.core.api.MuleContext;
+import org.mule.runtime.core.api.el.ExpressionManager;
+import org.mule.runtime.module.extension.internal.runtime.resolver.ParametersResolver;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSet;
-import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSetResult;
-import org.mule.runtime.module.extension.internal.runtime.resolver.StaticValueResolver;
 import org.mule.runtime.module.extension.internal.runtime.resolver.TypeSafeValueResolverWrapper;
+import org.mule.runtime.module.extension.internal.util.ReflectionCache;
 
 import java.util.Map;
 import java.util.Optional;
@@ -32,46 +33,44 @@ public final class SdkToolingUtils {
 
   private static final Logger LOGGER = getLogger(SdkToolingUtils.class);
 
-  private SdkToolingUtils() {
-  }
+  private SdkToolingUtils() {}
 
-  public static ResolverSet toResolverSet(Map<String, ?> values, MuleContext muleContext) {
-    ResolverSet resolverSet = new ResolverSet(muleContext);
-    values.forEach((k, v) -> resolverSet.add(k, new StaticValueResolver(v)));
+  public static ResolverSet toResolverSet(Map<String, ?> values,
+                                          ParameterizedModel parameterizedModel,
+                                          MuleContext muleContext,
+                                          ReflectionCache reflectionCache,
+                                          ExpressionManager expressionManager)
+      throws Exception {
 
-    return resolverSet;
-  }
+    ParametersResolver parametersResolver = fromValues(values,
+                                                       muleContext,
+                                                       true,
+                                                       reflectionCache,
+                                                       expressionManager);
 
-  public static ResolverSet toResolverSet(Map<String, ?> values, ParameterizedModel parameterizedModel, MuleContext muleContext) throws InitialisationException {
+    ResolverSet typeUnsafeResolverSet = parametersResolver.getParametersAsResolverSet(muleContext,
+                                                                                      parameterizedModel,
+                                                                                      parameterizedModel
+                                                                                          .getParameterGroupModels());
+
     Map<String, ParameterModel> paramModels =
         parameterizedModel.getAllParameterModels().stream().collect(toMap(p -> p.getName(), identity()));
 
-    ResolverSet resolverSet = new ResolverSet(muleContext);
-    values.forEach((paramName, value) -> {
-      boolean paramAdded = false;
+    ResolverSet typeSafeResolverSet = new ResolverSet(muleContext);
+    typeUnsafeResolverSet.getResolvers().forEach((paramName, resolver) -> {
       ParameterModel model = paramModels.get(paramName);
       if (model != null) {
         Optional<Class<Object>> clazz = getType(model.getType());
         if (clazz.isPresent()) {
-          resolverSet.add(paramName, new TypeSafeValueResolverWrapper(new StaticValueResolver(value), clazz.get()));
-          paramAdded = true;
+          resolver = new TypeSafeValueResolverWrapper(resolver, clazz.get());
         }
       }
 
-      if (!paramAdded) {
-        resolverSet.add(paramName, new StaticValueResolver(value));
-      }
+      typeSafeResolverSet.add(paramName, resolver);
     });
 
-    resolverSet.initialise();
-    return resolverSet;
-  }
-
-  public static ResolverSetResult toResolverSetResult(Map<String, ?> values) {
-    ResolverSetResult.Builder builder = ResolverSetResult.newBuilder();
-    values.forEach(builder::add);
-
-    return builder.build();
+    typeSafeResolverSet.initialise();
+    return typeSafeResolverSet;
   }
 
   public static void stopAndDispose(Object object) {

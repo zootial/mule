@@ -139,8 +139,8 @@ public class ToolingSchedulerService implements SchedulerService, Stoppable {
 
   private NamedThreadFactory buildThreadFactory(SchedulerConfig config) {
     return new NamedThreadFactory(config.getSchedulerName() != null
-                                      ? config.getSchedulerName()
-                                      : "SimpleUnitTestSupportSchedulerService_custom") {
+        ? config.getSchedulerName()
+        : "SimpleUnitTestSupportSchedulerService_custom") {
 
       @Override
       public Thread newThread(Runnable runnable) {
@@ -152,9 +152,8 @@ public class ToolingSchedulerService implements SchedulerService, Stoppable {
   }
 
   protected ToolingSchedulerDecorator decorateScheduler(ToolingScheduler scheduler, String name) {
-    return withContextClassLoader(ToolingSchedulerService.class.getClassLoader(), () ->
-        new ToolingSchedulerDecorator(name, scheduler, this)
-    );
+    return withContextClassLoader(ToolingSchedulerService.class.getClassLoader(),
+                                  () -> new ToolingSchedulerDecorator(name, scheduler, this));
   }
 
   @Override
@@ -187,7 +186,7 @@ public class ToolingSchedulerService implements SchedulerService, Stoppable {
 
     if (scheduler instanceof ToolingSchedulerDecorator
         && ((ToolingSchedulerDecorator) scheduler)
-        .getDecorated() instanceof ToolingCustomScheduler) {
+            .getDecorated() instanceof ToolingCustomScheduler) {
       customSchedulers.remove(((ToolingSchedulerDecorator) scheduler).getDecorated());
     }
   }
