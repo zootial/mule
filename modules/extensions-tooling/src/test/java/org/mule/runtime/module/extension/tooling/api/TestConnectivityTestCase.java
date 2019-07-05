@@ -12,6 +12,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mule.runtime.api.connection.ConnectionValidationResult.failure;
 import static org.mule.runtime.api.connection.ConnectionValidationResult.success;
 import static org.mule.runtime.module.extension.tooling.internal.TestToolingExtensionDeclarer.DEFAULT_HOST;
@@ -56,7 +57,8 @@ public class TestConnectivityTestCase extends AbstractMuleTestCase {
   public static final String HOST = "localhost";
   public static final String PASSWORD = "dietMule";
   public static final String USER = "dietuser";
-  public static final int PORT = 8080;
+  public static final String PORT = "8080"; // intentionally a String, to force value convertion
+
   private ExtensionModel extensionModel;
   private ConnectionProviderModel connectionProviderModel;
 
@@ -97,9 +99,16 @@ public class TestConnectivityTestCase extends AbstractMuleTestCase {
 
     long now = System.currentTimeMillis();
     ConnectionValidationResult result = executor.testConnectivity(extensionModel, connectionProviderModel, classLoader, params);
-    System.out.println("Diet Connectivity test took " + (System.currentTimeMillis() - now) + "ms");
-    
-    assertThat(result.isValid(), is(true));
+    System.out.println("Diet Connectivity test took " + (System.currentTimeMillis() - now) + " ms");
+
+    if (!result.isValid()) {
+      if (result.getException() != null) {
+        throw result.getException();
+      }
+
+      fail("Connectivity testing failed");
+    }
+
     assertThat(result.getException(), is(nullValue()));
     assertThat(result.getErrorType().isPresent(), is(false));
 
@@ -111,7 +120,7 @@ public class TestConnectivityTestCase extends AbstractMuleTestCase {
     assertThat(connectionProvider.getUsername(), equalTo(USER));
     assertThat(connectionProvider.getPassword(), equalTo(PASSWORD));
     assertThat(connectionProvider.getHost(), equalTo(HOST));
-    assertThat(connectionProvider.getPort(), equalTo(PORT));
+    assertThat(connectionProvider.getPort(), equalTo(Integer.parseInt(PORT)));
 
     assertThat(connectionProvider.getLockFactory(), is(instanceOf(MuleLockFactory.class)));
     assertThat(connectionProvider.getSchedulerService(), is(instanceOf(ToolingSchedulerService.class)));
@@ -119,6 +128,7 @@ public class TestConnectivityTestCase extends AbstractMuleTestCase {
 
     assertThat(connectionProvider.getConnection().isConnected(), is(false));
   }
+
 
   private class TestConnectionProvider implements ConnectionProvider<Connection>, Lifecycle {
 
@@ -235,6 +245,7 @@ public class TestConnectivityTestCase extends AbstractMuleTestCase {
       return schedulerService;
     }
   }
+
 
   private class Connection {
 
