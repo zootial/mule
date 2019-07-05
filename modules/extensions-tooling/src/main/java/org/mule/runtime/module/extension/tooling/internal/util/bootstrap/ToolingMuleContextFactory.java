@@ -28,7 +28,7 @@ public class ToolingMuleContextFactory {
   public MuleContext createMuleContext() throws MuleException {
     return createMuleContext(true);
   }
-  
+
   public MuleContext createMuleContext(boolean start) throws MuleException {
     MuleContext muleContext = new DefaultMuleContextFactory().createMuleContext(getConfigurationBuilders());
 

@@ -6,12 +6,18 @@
  */
 package org.mule.runtime.module.extension.tooling.internal.connectivity;
 
+import static org.mule.runtime.module.extension.internal.util.IntrospectionUtils.getAnnotatedFields;
+
+import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.meta.model.ExtensionModel;
 import org.mule.runtime.api.meta.model.connection.ConnectionProviderModel;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.el.ExpressionManager;
+import org.mule.runtime.extension.api.annotation.param.RefName;
 import org.mule.runtime.module.extension.internal.runtime.config.ConnectionProviderObjectBuilder;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSet;
+import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSetResult;
+import org.mule.runtime.module.extension.internal.util.FieldSetter;
 
 public class ToolingConnectionProviderBuilder extends ConnectionProviderObjectBuilder<Object> {
 
@@ -23,5 +29,17 @@ public class ToolingConnectionProviderBuilder extends ConnectionProviderObjectBu
                                           MuleContext muleContext) {
     super(providerModel, resolverSet, extensionModel, expressionManager, muleContext);
     setOwnerConfigName("Connectivity Test");
+  }
+
+  @Override
+  protected void populate(ResolverSetResult result, Object object) throws MuleException {
+    super.populate(result, object);
+
+    injectRefName(object);
+  }
+
+  private void injectRefName(Object object) {
+    getAnnotatedFields(object.getClass(), RefName.class)
+        .forEach(field -> new FieldSetter<>(field).set(object, "ConnectivityTestConfig"));
   }
 }

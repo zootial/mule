@@ -42,26 +42,30 @@ public class ToolingExpressionManager implements ExpressionManager {
 
   @Override
   public TypedValue evaluate(String expression, CoreEvent event,
-                             ComponentLocation componentLocation) throws ExpressionRuntimeException {
+                             ComponentLocation componentLocation)
+      throws ExpressionRuntimeException {
     return delegate.evaluate(expression, event, componentLocation);
   }
 
   @Override
   public TypedValue evaluate(String expression, CoreEvent event,
-                             BindingContext context) throws ExpressionRuntimeException {
+                             BindingContext context)
+      throws ExpressionRuntimeException {
     return delegate.evaluate(expression, event, context);
   }
 
   @Override
   public TypedValue evaluate(String expression, CoreEvent event,
                              ComponentLocation componentLocation,
-                             BindingContext context) throws ExpressionRuntimeException {
+                             BindingContext context)
+      throws ExpressionRuntimeException {
     return delegate.evaluate(expression, event, componentLocation, context);
   }
 
   @Override
   public TypedValue evaluate(String expression,
-                             DataType expectedOutputType) throws ExpressionRuntimeException {
+                             DataType expectedOutputType)
+      throws ExpressionRuntimeException {
     return delegate.evaluate(expression, expectedOutputType);
   }
 
@@ -69,7 +73,8 @@ public class ToolingExpressionManager implements ExpressionManager {
   public TypedValue evaluate(String expression,
                              DataType expectedOutputType,
                              BindingContext context,
-                             CoreEvent event) throws ExpressionRuntimeException {
+                             CoreEvent event)
+      throws ExpressionRuntimeException {
     return delegate.evaluate(expression, expectedOutputType, context, event);
   }
 
@@ -79,27 +84,31 @@ public class ToolingExpressionManager implements ExpressionManager {
                              BindingContext context,
                              CoreEvent event,
                              ComponentLocation componentLocation,
-                             boolean failOnNull) throws ExpressionRuntimeException {
+                             boolean failOnNull)
+      throws ExpressionRuntimeException {
     return delegate.evaluate(expression, expectedOutputType, context, event, componentLocation, failOnNull);
   }
 
   @Override
   public boolean evaluateBoolean(String expression, CoreEvent event,
-                                 ComponentLocation componentLocation) throws ExpressionRuntimeException {
+                                 ComponentLocation componentLocation)
+      throws ExpressionRuntimeException {
     return delegate.evaluateBoolean(expression, event, componentLocation);
   }
 
   @Override
   public boolean evaluateBoolean(String expression, CoreEvent event,
                                  ComponentLocation componentLocation,
-                                 boolean nullReturnsTrue, boolean nonBooleanReturnsTrue) throws ExpressionRuntimeException {
+                                 boolean nullReturnsTrue, boolean nonBooleanReturnsTrue)
+      throws ExpressionRuntimeException {
     return delegate.evaluateBoolean(expression, event, componentLocation, nullReturnsTrue, nonBooleanReturnsTrue);
   }
 
   @Override
   public boolean evaluateBoolean(String expression, BindingContext bindingCtx,
                                  ComponentLocation componentLocation,
-                                 boolean nullReturnsTrue, boolean nonBooleanReturnsTrue) throws ExpressionRuntimeException {
+                                 boolean nullReturnsTrue, boolean nonBooleanReturnsTrue)
+      throws ExpressionRuntimeException {
     return delegate.evaluateBoolean(expression, bindingCtx, componentLocation, nullReturnsTrue, nonBooleanReturnsTrue);
   }
 
@@ -107,21 +116,24 @@ public class ToolingExpressionManager implements ExpressionManager {
   public Iterator<TypedValue<?>> split(String expression,
                                        CoreEvent event,
                                        ComponentLocation componentLocation,
-                                       BindingContext bindingContext) throws ExpressionRuntimeException {
+                                       BindingContext bindingContext)
+      throws ExpressionRuntimeException {
     return delegate.split(expression, event, componentLocation, bindingContext);
   }
 
   @Override
   public Iterator<TypedValue<?>> split(String expression,
                                        CoreEvent event,
-                                       BindingContext bindingContext) throws ExpressionRuntimeException {
+                                       BindingContext bindingContext)
+      throws ExpressionRuntimeException {
     return delegate.split(expression, event, bindingContext);
   }
 
   @Override
   public String parseLogTemplate(String template, CoreEvent event,
                                  ComponentLocation componentLocation,
-                                 BindingContext bindingContext) throws ExpressionRuntimeException {
+                                 BindingContext bindingContext)
+      throws ExpressionRuntimeException {
     return delegate.parseLogTemplate(template, event, componentLocation, bindingContext);
   }
 
@@ -132,8 +144,8 @@ public class ToolingExpressionManager implements ExpressionManager {
 
   @Override
   public ExpressionManagerSession openSession(
-      ComponentLocation componentLocation, CoreEvent event,
-      BindingContext context) {
+                                              ComponentLocation componentLocation, CoreEvent event,
+                                              BindingContext context) {
     return delegate.openSession(componentLocation, event, context);
   }
 
@@ -160,13 +172,15 @@ public class ToolingExpressionManager implements ExpressionManager {
   @Override
   public TypedValue<?> evaluate(String expression,
                                 DataType expectedOutputType,
-                                BindingContext context) throws ExpressionExecutionException {
+                                BindingContext context)
+      throws ExpressionExecutionException {
     return delegate.evaluate(expression, expectedOutputType, context);
   }
 
   @Override
   public TypedValue<?> evaluateLogExpression(String expression,
-                                             BindingContext context) throws ExpressionExecutionException {
+                                             BindingContext context)
+      throws ExpressionExecutionException {
     return delegate.evaluateLogExpression(expression, context);
   }
 
