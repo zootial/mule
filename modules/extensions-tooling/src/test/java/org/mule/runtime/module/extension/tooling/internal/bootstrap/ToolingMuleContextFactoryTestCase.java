@@ -4,28 +4,28 @@
  * license, a copy of which has been included with this distribution in the
  * LICENSE.txt file.
  */
-package org.mule.runtime.module.extension.tooling.internal.util;
+package org.mule.runtime.module.extension.tooling.internal.bootstrap;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import org.mule.runtime.core.api.MuleContext;
+import org.mule.runtime.module.extension.tooling.internal.util.bootstrap.ToolingMuleContextFactory;
 import org.mule.tck.junit4.AbstractMuleTestCase;
 
 import org.junit.Test;
 
-public class ExtensionToolingUtilsTestCase extends AbstractMuleTestCase {
+public class ToolingMuleContextFactoryTestCase extends AbstractMuleTestCase {
 
+  private ToolingMuleContextFactory factory = new ToolingMuleContextFactory();
 
   @Test
   public void createMuleContext() throws Exception {
-    MuleContext muleContext = ExtensionsToolingUtils.createMuleContext(true);
+    MuleContext muleContext = factory.createMuleContext(true);
 
     assertThat(muleContext.isInitialised(), is(true));
     assertThat(muleContext.isStarted(), is(true));
+    assertThat(muleContext.getExpressionManager(), is(notNullValue()));
   }
-
-
-
-
 }

@@ -4,13 +4,8 @@
  * license, a copy of which has been included with this distribution in the
  * LICENSE.txt file.
  */
-package org.mule.runtime.module.extension.tooling.internal.util;
+package org.mule.runtime.module.extension.tooling.internal.util.bootstrap;
 
-import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.disposeIfNeeded;
-import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.stopIfNeeded;
-import static org.slf4j.LoggerFactory.getLogger;
-
-import org.mule.runtime.api.connection.ConnectionProvider;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.scheduler.SchedulerService;
@@ -26,58 +21,25 @@ import org.mule.runtime.core.internal.context.DefaultMuleContext;
 import org.mule.runtime.core.internal.context.MuleContextWithRegistry;
 import org.mule.runtime.core.internal.registry.MuleRegistry;
 import org.mule.runtime.core.privileged.registry.RegistrationException;
-import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSet;
-import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSetResult;
-import org.mule.runtime.module.extension.internal.runtime.resolver.StaticValueResolver;
 import org.mule.runtime.module.extension.tooling.internal.service.scheduler.ToolingSchedulerService;
 
-import java.util.Map;
+public class ToolingMuleContextFactory {
 
-import org.slf4j.Logger;
-
-public final class ExtensionsToolingUtils {
-
-  private static final Logger LOGGER = getLogger(ExtensionsToolingUtils.class);
-
-  private ExtensionsToolingUtils() {
+  public MuleContext createMuleContext() throws MuleException {
+    return createMuleContext(true);
   }
-
-  public static ResolverSet toResolverSet(Map<String, ?> values, MuleContext muleContext) {
-    ResolverSet resolverSet = new ResolverSet(muleContext);
-    values.forEach((k, v) -> resolverSet.add(k, new StaticValueResolver(v)));
-
-    return resolverSet;
-  }
-
-  public static ResolverSetResult toResolverSetResult(Map<String, ?> values) {
-    ResolverSetResult.Builder builder = ResolverSetResult.newBuilder();
-    values.forEach(builder::add);
-
-    return builder.build();
-  }
-
-  public static <T> void stopAndDispose(ConnectionProvider<T> connectionProvider) {
-    try {
-      stopIfNeeded(connectionProvider);
-    } catch (MuleException e) {
-      LOGGER.error("Exception trying to stop connection provider", e);
-    } finally {
-      disposeIfNeeded(connectionProvider, LOGGER);
-    }
-  }
-
-  public static MuleContext createMuleContext(boolean start) throws MuleException {
+  
+  public MuleContext createMuleContext(boolean start) throws MuleException {
     MuleContext muleContext = new DefaultMuleContextFactory().createMuleContext(getConfigurationBuilders());
 
     if (start) {
-      //muleContext.initialise();
       muleContext.start();
     }
 
     return muleContext;
   }
 
-  private static ConfigurationBuilder[] getConfigurationBuilders() {
+  private ConfigurationBuilder[] getConfigurationBuilders() {
     return new ConfigurationBuilder[] {
         new DefaultsConfigurationBuilder(),
         getServicesConfigurationBuilder(),
@@ -85,11 +47,11 @@ public final class ExtensionsToolingUtils {
     };
   }
 
-  private static ConfigurationBuilder getInjectionConfigurationBuilder() {
+  private ConfigurationBuilder getInjectionConfigurationBuilder() {
     return new AbstractConfigurationBuilder() {
 
       @Override
-      protected void doConfigure(MuleContext muleContext) throws Exception {
+      protected void doConfigure(MuleContext muleContext) {
         DefaultMuleContext ctx = (DefaultMuleContext) muleContext;
         Injector injector = ctx.getInjector();
 
@@ -98,7 +60,7 @@ public final class ExtensionsToolingUtils {
     };
   }
 
-  private static ConfigurationBuilder getServicesConfigurationBuilder() {
+  private ConfigurationBuilder getServicesConfigurationBuilder() {
     return new AbstractConfigurationBuilder() {
 
       @Override
@@ -114,7 +76,8 @@ public final class ExtensionsToolingUtils {
     };
   }
 
-  private static <T extends Service> String getServiceId(Class<T> contractClass, T service) {
+  private <T extends Service> String getServiceId(Class<T> contractClass, T service) {
     return service.getName() + "-" + contractClass.getSimpleName();
   }
+
 }

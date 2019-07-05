@@ -67,30 +67,10 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.mule.runtime</groupId>
-            <artifactId>mule-extensions-api</artifactId>
-            <version>${muleExtensionsApiVersion}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.mule.services</groupId>
             <artifactId>mule-service-weave</artifactId>
             <classifier>mule-service</classifier>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mule.connectors</groupId>
-            <artifactId>mule-sftp-connector</artifactId>
-            <version>${sftpConnectorVersion}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mule.connectors</groupId>
-            <artifactId>mule-sftp-connector</artifactId>
-            <version>${sftpConnectorVersion}</version>
-            <scope>test</scope>
-            <type>test-jar</type>
         </dependency>
         <dependency>
             <groupId>org.mule.tests</groupId>
@@ -112,40 +92,40 @@
         <dependency>
             <groupId>org.mule.tests</groupId>
             <artifactId>mule-metadata-extension</artifactId>
-            <version>4.3.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mule.tests</groupId>
             <artifactId>mule-vegan-extension</artifactId>
-            <version>4.3.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mule.tests</groupId>
             <artifactId>mule-heisenberg-extension</artifactId>
-            <version>4.3.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <classifier>mule-plugin</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mule.tests</groupId>
             <artifactId>mule-marvel-extension</artifactId>
-            <version>4.3.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <classifier>mule-plugin</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mule.tests</groupId>
             <artifactId>mule-subtypes-extension</artifactId>
-            <version>4.3.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <classifier>mule-plugin</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mule.tests</groupId>
             <artifactId>mule-petstore-extension</artifactId>
-            <version>4.3.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <classifier>mule-plugin</classifier>
             <scope>test</scope>
         </dependency>
