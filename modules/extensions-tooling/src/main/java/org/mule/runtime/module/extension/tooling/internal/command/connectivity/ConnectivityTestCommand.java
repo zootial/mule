@@ -11,8 +11,8 @@ import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.disposeIfNeeded
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.initialiseIfNeeded;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.startIfNeeded;
 import static org.mule.runtime.module.extension.api.util.MuleExtensionUtils.getInitialiserEvent;
-import static org.mule.runtime.module.extension.internal.runtime.resolver.ParametersResolver.fromValues;
 import static org.mule.runtime.module.extension.tooling.internal.util.SdkToolingUtils.stopAndDispose;
+import static org.mule.runtime.module.extension.tooling.internal.util.SdkToolingUtils.toResolverSet;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import org.mule.runtime.api.connection.ConnectionProvider;
@@ -22,7 +22,6 @@ import org.mule.runtime.api.meta.model.connection.ConnectionProviderModel;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.el.ExpressionManager;
 import org.mule.runtime.module.extension.internal.runtime.config.ConnectionProviderObjectBuilder;
-import org.mule.runtime.module.extension.internal.runtime.resolver.ParametersResolver;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSet;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSetResult;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ValueResolvingContext;
@@ -31,7 +30,6 @@ import org.mule.runtime.module.extension.tooling.internal.ToolingExpressionManag
 import org.mule.runtime.module.extension.tooling.internal.command.SdkToolingCommand;
 import org.mule.runtime.module.extension.tooling.internal.command.SdkToolingContext;
 import org.mule.runtime.module.extension.tooling.internal.connectivity.ToolingConnectionProviderBuilder;
-import org.mule.runtime.module.extension.tooling.internal.util.SdkToolingUtils;
 
 import org.slf4j.Logger;
 
@@ -70,17 +68,11 @@ public class ConnectivityTestCommand implements SdkToolingCommand<ConnectionVali
     final ExpressionManager expressionManager = new ToolingExpressionManager();
     final MuleContext muleContext = context.getMuleContext();
 
-    ParametersResolver parametersResolver = fromValues(context.getParameters(),
-                                                       muleContext,
-                                                       true,
-                                                       reflectionCache,
-                                                       expressionManager);
-
-    ResolverSet resolverSet = SdkToolingUtils.toResolverSet(context.getParameters(),
-                                                            connectionProviderModel,
-                                                            muleContext,
-                                                            reflectionCache,
-                                                            expressionManager);
+    ResolverSet resolverSet = toResolverSet(context.getParameters(),
+                                            connectionProviderModel,
+                                            muleContext,
+                                            reflectionCache,
+                                            expressionManager);
 
     resolverSet.initialise();
 

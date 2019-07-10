@@ -105,52 +105,23 @@ public class DefaultsConfigurationBuilder extends AbstractConfigurationBuilder {
 
     new SimpleRegistryBootstrap(APP, muleContext).initialise();
 
-    configureQueueManager(muleContext);
+    registerBaseComponents(muleContext, registry);
+    registerExecutionComponents(muleContext);
+  }
 
-    registry.registerObject(OBJECT_MULE_CONTEXT, muleContext);
+  protected void registerExecutionComponents(MuleContext muleContext) throws RegistrationException {
     registerObject(OBJECT_SECURITY_MANAGER, new DefaultMuleSecurityManager(), muleContext);
-
-    registerObject(BASE_IN_MEMORY_OBJECT_STORE_KEY, createDefaultInMemoryObjectStore(), muleContext);
-    registerObject(BASE_PERSISTENT_OBJECT_STORE_KEY, createDefaultPersistentObjectStore(), muleContext);
-
-    registerLocalObjectStoreManager(muleContext, registry);
-
-    registerObject(OBJECT_SCHEDULER_POOLS_CONFIG, SchedulerContainerPoolsConfig.getInstance(), muleContext);
-    registerObject(OBJECT_SCHEDULER_BASE_CONFIG,
-                   config().withPrefix(muleContext.getConfiguration().getId())
-                       .withShutdownTimeout(() -> muleContext.getConfiguration().getShutdownTimeout(), MILLISECONDS),
-                   muleContext);
-
-    registerObject(OBJECT_STORE_MANAGER, new MuleObjectStoreManager(), muleContext);
     registerObject(OBJECT_DEFAULT_MESSAGE_PROCESSING_MANAGER, new MuleMessageProcessingManager(), muleContext);
-
     registerObject(OBJECT_MULE_STREAM_CLOSER_SERVICE, new DefaultStreamCloserService(), muleContext);
-
-    registerObject(OBJECT_LOCK_PROVIDER, new SingleServerLockProvider(), muleContext);
-    registerObject(OBJECT_LOCK_FACTORY, new MuleLockFactory(), muleContext);
-
-    registerObject(OBJECT_PROCESSING_TIME_WATCHER, new DefaultProcessingTimeWatcher(), muleContext);
-
-    registerObject(OBJECT_CONVERTER_RESOLVER, new DynamicDataTypeConversionResolver(muleContext), muleContext);
-
-    registerObject(DEFAULT_OBJECT_SERIALIZER_NAME, new JavaObjectSerializer(), muleContext);
-    registerObject(OBJECT_EXPRESSION_LANGUAGE, new MVELExpressionLanguage(muleContext), muleContext);
     registerObject(OBJECT_STREAMING_GHOST_BUSTER, new StreamingGhostBuster(), muleContext);
-    registerObject(OBJECT_STREAMING_MANAGER, new DefaultStreamingManager(), muleContext);
-    registerObject(OBJECT_EXPRESSION_MANAGER, new DefaultExpressionManager(), muleContext);
-    registerObject(OBJECT_TIME_SUPPLIER, new LocalTimeSupplier(), muleContext);
-    registerObject(OBJECT_CONNECTION_MANAGER, new DefaultConnectionManager(muleContext), muleContext);
-    registerObject(METADATA_SERVICE_KEY, new MuleMetadataService(), muleContext);
-    registerObject(VALUE_PROVIDER_SERVICE_KEY, new MuleValueProviderService(), muleContext);
+    registerObject(OBJECT_PROCESSING_TIME_WATCHER, new DefaultProcessingTimeWatcher(), muleContext);
     registerObject(INTERCEPTOR_MANAGER_REGISTRY_KEY, new DefaultProcessorInterceptorManager(), muleContext);
+
     registerObject(OBJECT_NOTIFICATION_DISPATCHER, new DefaultNotificationDispatcher(), muleContext);
     registerObject(NotificationListenerRegistry.REGISTRY_KEY, new DefaultNotificationListenerRegistry(), muleContext);
     registerObject(EventContextService.REGISTRY_KEY, new DefaultEventContextService(), muleContext);
     registerObject(ThreadNotificationService.REGISTRY_KEY, new DefaultThreadNotificationService(), muleContext);
     registerObject(OBJECT_TRANSACTION_FACTORY_LOCATOR, new TransactionFactoryLocator(), muleContext);
-    registerObject(OBJECT_CLUSTER_SERVICE, new DefaultClusterService(), muleContext);
-    registerObject(OBJECT_TRANSFORMATION_SERVICE, new ExtendedTransformationService(muleContext), muleContext);
-
     registerObject(ComponentInitialStateManager.SERVICE_ID, new ComponentInitialStateManager() {
 
       @Override
@@ -159,6 +130,40 @@ public class DefaultsConfigurationBuilder extends AbstractConfigurationBuilder {
       }
     }, muleContext);
     registerObject(OBJECT_RESOURCE_LOCATOR, new DefaultResourceLocator(), muleContext);
+  }
+
+  protected void registerBaseComponents(MuleContext muleContext, MuleRegistry registry) throws RegistrationException {
+    registry.registerObject(OBJECT_MULE_CONTEXT, muleContext);
+    registerObject(BASE_IN_MEMORY_OBJECT_STORE_KEY, createDefaultInMemoryObjectStore(), muleContext);
+    registerObject(BASE_PERSISTENT_OBJECT_STORE_KEY, createDefaultPersistentObjectStore(), muleContext);
+    registerLocalObjectStoreManager(muleContext, registry);
+    configureQueueManager(muleContext);
+
+    registerObject(OBJECT_SCHEDULER_POOLS_CONFIG, SchedulerContainerPoolsConfig.getInstance(), muleContext);
+    registerObject(OBJECT_SCHEDULER_BASE_CONFIG,
+                   config().withPrefix(muleContext.getConfiguration().getId())
+                       .withShutdownTimeout(() -> muleContext.getConfiguration().getShutdownTimeout(), MILLISECONDS),
+                   muleContext);
+    registerObject(OBJECT_STORE_MANAGER, new MuleObjectStoreManager(), muleContext);
+    registerObject(OBJECT_LOCK_PROVIDER, new SingleServerLockProvider(), muleContext);
+    registerObject(OBJECT_LOCK_FACTORY, new MuleLockFactory(), muleContext);
+
+    registerObject(OBJECT_CONVERTER_RESOLVER, new DynamicDataTypeConversionResolver(muleContext), muleContext);
+    registerObject(DEFAULT_OBJECT_SERIALIZER_NAME, new JavaObjectSerializer(), muleContext);
+
+    registerMELExpressionLanguage(muleContext);
+    registerObject(OBJECT_STREAMING_MANAGER, new DefaultStreamingManager(), muleContext);
+    registerObject(OBJECT_EXPRESSION_MANAGER, new DefaultExpressionManager(), muleContext);
+    registerObject(OBJECT_TIME_SUPPLIER, new LocalTimeSupplier(), muleContext);
+    registerObject(OBJECT_CONNECTION_MANAGER, new DefaultConnectionManager(muleContext), muleContext);
+    registerObject(METADATA_SERVICE_KEY, new MuleMetadataService(), muleContext);
+    registerObject(VALUE_PROVIDER_SERVICE_KEY, new MuleValueProviderService(), muleContext);
+    registerObject(OBJECT_CLUSTER_SERVICE, new DefaultClusterService(), muleContext);
+    registerObject(OBJECT_TRANSFORMATION_SERVICE, new ExtendedTransformationService(muleContext), muleContext);
+  }
+
+  protected void registerMELExpressionLanguage(MuleContext muleContext) throws RegistrationException {
+    registerObject(OBJECT_EXPRESSION_LANGUAGE, new MVELExpressionLanguage(muleContext), muleContext);
   }
 
   protected void registerObject(String serviceId, Object serviceImpl, MuleContext muleContext) throws RegistrationException {
