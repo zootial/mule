@@ -6,20 +6,22 @@
  */
 package org.mule.runtime.module.extension.tooling.internal.util.bootstrap;
 
+import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_EXTENSION_MANAGER;
+
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.scheduler.SchedulerService;
 import org.mule.runtime.api.service.Service;
-import org.mule.runtime.core.api.Injector;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.config.ConfigurationBuilder;
 import org.mule.runtime.core.api.config.builders.AbstractConfigurationBuilder;
 import org.mule.runtime.core.api.context.DefaultMuleContextFactory;
-import org.mule.runtime.core.api.util.func.CheckedConsumer;
+import org.mule.runtime.core.api.extension.ExtensionManager;
 import org.mule.runtime.core.internal.context.DefaultMuleContext;
 import org.mule.runtime.core.internal.context.MuleContextWithRegistry;
 import org.mule.runtime.core.internal.registry.MuleRegistry;
 import org.mule.runtime.core.privileged.registry.RegistrationException;
+import org.mule.runtime.module.extension.internal.manager.DefaultExtensionManager;
 import org.mule.runtime.module.extension.tooling.internal.service.scheduler.ToolingSchedulerService;
 
 public class ToolingMuleContextFactory {
@@ -41,20 +43,20 @@ public class ToolingMuleContextFactory {
   private ConfigurationBuilder[] getConfigurationBuilders() {
     return new ConfigurationBuilder[] {
         new ToolingConfigurationBuilder(),
-        getServicesConfigurationBuilder()
-        //getInjectionConfigurationBuilder()
+        getServicesConfigurationBuilder(),
+        getExtensionManagerConfigurationBuilder()
     };
   }
 
-  private ConfigurationBuilder getInjectionConfigurationBuilder() {
+  private ConfigurationBuilder getExtensionManagerConfigurationBuilder() {
     return new AbstractConfigurationBuilder() {
 
       @Override
-      protected void doConfigure(MuleContext muleContext) {
+      protected void doConfigure(MuleContext muleContext) throws Exception {
+        ExtensionManager extensionManager = new DefaultExtensionManager();
         DefaultMuleContext ctx = (DefaultMuleContext) muleContext;
-        Injector injector = ctx.getInjector();
-
-        ctx.getRegistry().lookupObjects(Object.class).forEach((CheckedConsumer<Object>) injector::inject);
+        ctx.setExtensionManager(extensionManager);
+        ctx.getRegistry().registerObject(OBJECT_EXTENSION_MANAGER, extensionManager);
       }
     };
   }
