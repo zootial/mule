@@ -16,7 +16,6 @@ import org.mule.runtime.core.api.config.ConfigurationBuilder;
 import org.mule.runtime.core.api.config.builders.AbstractConfigurationBuilder;
 import org.mule.runtime.core.api.context.DefaultMuleContextFactory;
 import org.mule.runtime.core.api.util.func.CheckedConsumer;
-import org.mule.runtime.core.internal.config.builders.DefaultsConfigurationBuilder;
 import org.mule.runtime.core.internal.context.DefaultMuleContext;
 import org.mule.runtime.core.internal.context.MuleContextWithRegistry;
 import org.mule.runtime.core.internal.registry.MuleRegistry;
@@ -41,9 +40,9 @@ public class ToolingMuleContextFactory {
 
   private ConfigurationBuilder[] getConfigurationBuilders() {
     return new ConfigurationBuilder[] {
-        new DefaultsConfigurationBuilder(),
-        getServicesConfigurationBuilder(),
-        getInjectionConfigurationBuilder()
+        new ToolingConfigurationBuilder(),
+        getServicesConfigurationBuilder()
+        //getInjectionConfigurationBuilder()
     };
   }
 

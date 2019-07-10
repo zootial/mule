@@ -6,7 +6,11 @@
  */
 package org.mule.runtime.module.extension.tooling.internal;
 
+import static java.lang.System.clearProperty;
+import static java.lang.System.setProperty;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
+import static org.mule.runtime.core.api.config.MuleDeploymentProperties.MULE_LAZY_INIT_DEPLOYMENT_PROPERTY;
+import static org.mule.runtime.core.api.config.MuleDeploymentProperties.MULE_LAZY_INIT_ENABLE_XML_VALIDATIONS_DEPLOYMENT_PROPERTY;
 import static org.mule.runtime.core.api.util.ClassUtils.withContextClassLoader;
 import static org.mule.runtime.module.extension.tooling.internal.util.SdkToolingUtils.stopAndDispose;
 
@@ -43,16 +47,24 @@ public class DefaultSdkToolingExecutor implements SdkToolingExecutor {
   }
 
   private <T> T doExecute(SdkToolingCommand<T> command, SdkToolingContext context) {
-    return withContextClassLoader(context.getClassLoader(), () -> {
-      try {
-        return command.execute(context);
-      } catch (Exception e) {
-        //TODO: Guille, should we throw a specific tooling exception her?
-        throw new MuleRuntimeException(e);
-      } finally {
-        stopAndDispose(context.getMuleContext());
-      }
-    });
+    setProperty(MULE_LAZY_INIT_DEPLOYMENT_PROPERTY, "true");
+    setProperty(MULE_LAZY_INIT_ENABLE_XML_VALIDATIONS_DEPLOYMENT_PROPERTY, "false");
+
+    try {
+      return withContextClassLoader(context.getClassLoader(), () -> {
+        try {
+          return command.execute(context);
+        } catch (Exception e) {
+          //TODO: Guille, should we throw a specific tooling exception her?
+          throw new MuleRuntimeException(e);
+        } finally {
+          stopAndDispose(context.getMuleContext());
+        }
+      });
+    } finally {
+      clearProperty(MULE_LAZY_INIT_DEPLOYMENT_PROPERTY);
+      clearProperty(MULE_LAZY_INIT_ENABLE_XML_VALIDATIONS_DEPLOYMENT_PROPERTY);
+    }
   }
 
   private MuleContext createMuleContext() {
