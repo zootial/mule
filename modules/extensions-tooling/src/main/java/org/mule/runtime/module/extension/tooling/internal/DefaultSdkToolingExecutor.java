@@ -39,6 +39,7 @@ public class DefaultSdkToolingExecutor implements SdkToolingExecutor {
                                                      Map<String, Object> params) {
 
     final MuleContext muleContext = createMuleContext();
+    muleContext.getExtensionManager().registerExtension(extensionModel);
 
     SdkToolingContext ctx = new ImmutableSdkToolingContext(extensionModel, params, muleContext, classLoader);
     ConnectivityTestCommand cmd = new ConnectivityTestCommand(connectionProviderModel);
