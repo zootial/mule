@@ -20,10 +20,12 @@ import static org.mule.runtime.api.metadata.DataType.STRING;
 import static org.mule.runtime.api.metadata.MediaType.APPLICATION_JAVA;
 import static org.mule.runtime.api.metadata.MediaType.APPLICATION_JSON;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.initialiseIfNeeded;
+import org.mule.runtime.api.el.BindingContext;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.DataType;
 import org.mule.runtime.api.metadata.MediaType;
+import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.streaming.CursorProvider;
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.expression.ExpressionRuntimeException;
@@ -190,6 +192,26 @@ public class DWAttributeEvaluatorTestCase extends AbstractMuleContextTestCase {
     AttributeEvaluator attributeEvaluator = getAttributeEvaluator("#[payload.ok]", BOOLEAN);
     Boolean bool = attributeEvaluator.resolveValue(newEvent("{\"ok\" : true}", APPLICATION_JSON));
     assertThat(bool, is(true));
+  }
+
+
+  @Test
+  public void nestedExpressionInsideString() throws MuleException {
+    AttributeEvaluator attributeEvaluator =
+        getAttributeEvaluator("#[\"hola #[payload.raza]: \" ++ payload.dogResponse as String]", STRING);
+    String resolvedString = attributeEvaluator.resolveValue(newEvent("{\"dogResponse\":\"halo\"}", APPLICATION_JSON));
+    assertThat(resolvedString, is("hola perro: halo"));
+  }
+
+  @Test
+  public void nestedExpressionInsideStringResolvingWithBindingContext() throws MuleException {
+    AttributeEvaluator attributeEvaluator =
+        getAttributeEvaluator("#[\"hola #[holis]: \" ++ vars.dogResponse as String]", STRING);
+    TypedValue resolvedString = attributeEvaluator.resolveTypedValueFromContext(BindingContext.builder()
+        .addBinding("vars.raza", TypedValue.of("golden"))
+        .addBinding("vars.dogResponse", TypedValue.of("halo"))
+        .build());
+    assertThat(resolvedString.getValue(), is("hola perro: halo"));
   }
 
   private CoreEvent newEvent(Object payload, MediaType applicationJson) throws MuleException {
