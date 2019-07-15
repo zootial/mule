@@ -9,7 +9,12 @@ package org.mule.runtime.module.deployment.impl.internal.application;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+<<<<<<< HEAD
 import static java.util.Collections.singletonList;
+=======
+import static java.util.Collections.emptySet;
+import static java.util.stream.Collectors.toList;
+>>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
 import static org.apache.commons.io.FileUtils.toFile;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -26,14 +31,15 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.mule.maven.client.api.model.BundleScope.COMPILE;
 import static org.mule.runtime.core.api.config.bootstrap.ArtifactType.APP;
+
 import org.mule.maven.client.api.MavenClient;
 import org.mule.maven.client.api.model.BundleDescriptor;
 import org.mule.maven.client.api.model.MavenConfiguration;
 import org.mule.runtime.module.artifact.api.descriptor.BundleDependency;
 import org.mule.runtime.module.artifact.api.descriptor.ClassLoaderModel;
 import org.mule.runtime.module.artifact.api.descriptor.InvalidDescriptorLoaderException;
-
-import com.google.common.collect.ImmutableMap;
+import org.mule.runtime.module.artifact.internal.util.JarExplorer;
+import org.mule.runtime.module.artifact.internal.util.JarInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,13 +50,19 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
+<<<<<<< HEAD
 import io.qameta.allure.Description;
 import org.hamcrest.TypeSafeMatcher;
+=======
+>>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import com.google.common.collect.ImmutableMap;
+
+import io.qameta.allure.Description;
 
 public class DeployableMavenClassLoaderModelLoaderTestCase {
 
@@ -66,9 +78,10 @@ public class DeployableMavenClassLoaderModelLoaderTestCase {
   private static final org.mule.maven.client.api.model.BundleDependency TRAIT_BUNDLE =
       createBundleDependency("some.company", "dummy-trait", "1.0.3", "raml-fragment");
   private static final String POM_FORMAT = "%s-%s.pom";
-  private List<org.mule.maven.client.api.model.BundleDependency> BASE_DEPENDENCIES = asList(API_BUNDLE, LIB_BUNDLE, TRAIT_BUNDLE);
+  private final List<org.mule.maven.client.api.model.BundleDependency> BASE_DEPENDENCIES =
+      asList(API_BUNDLE, LIB_BUNDLE, TRAIT_BUNDLE);
 
-  private MavenClient mockMavenClient = mock(MavenClient.class, RETURNS_DEEP_STUBS);
+  private final MavenClient mockMavenClient = mock(MavenClient.class, RETURNS_DEEP_STUBS);
 
   @Rule
   public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -114,12 +127,16 @@ public class DeployableMavenClassLoaderModelLoaderTestCase {
   /**
    * Validates several versions of the same API definition artifact are considered in the model. Dependencies are as follows:
    *
+   * <pre>
+   * {@code
    * app
    * |- dep
-   * |- api
+   * \- api
    *    |- lib
    *    \- trait
-  *         \- lib'
+   *       \- lib
+   * }
+   * </pre>
    */
   @Test
   public void applicationWithDuplicatedApiArtifactDependencies() throws Exception {
@@ -153,12 +170,16 @@ public class DeployableMavenClassLoaderModelLoaderTestCase {
    * Validates that API dependencies are fully analyzed, even when they contain loops among each other. Dependencies are as
    * follows:
    *
+   * <pre>
+   * {@code
    * app
    * \- api
    *    |- lib
-   *    |  |- trait
+   *    |  \- trait
    *    \- trait
    *       \- lib
+   * }
+   * </pre>
    */
   @Test
   public void applicationWithLoopedApiArtifactDependencies() throws Exception {
@@ -231,7 +252,7 @@ public class DeployableMavenClassLoaderModelLoaderTestCase {
     assertThat(dependencies, hasSize(totalExpectedDependencies));
     List<BundleDependency> connectorsFound = dependencies.stream()
         .filter(bundleDependency -> bundleDependency.getDescriptor().getArtifactId().equals(patchedArtifactId))
-        .collect(Collectors.toList());
+        .collect(toList());
     assertThat(connectorsFound, hasSize(1));
     assertThat(connectorsFound.get(0).getDescriptor().getVersion(), is(patchedArtifactVersion));
   }
@@ -239,7 +260,11 @@ public class DeployableMavenClassLoaderModelLoaderTestCase {
   private ClassLoaderModel buildClassLoaderModel(File rootApplication)
       throws InvalidDescriptorLoaderException {
     DeployableMavenClassLoaderModelLoader deployableMavenClassLoaderModelLoader =
-        new DeployableMavenClassLoaderModelLoader(mockMavenClient);
+        new DeployableMavenClassLoaderModelLoader(mockMavenClient, () -> {
+          final JarExplorer jarExplorer = mock(JarExplorer.class);
+          when(jarExplorer.explore(any(URI.class))).thenReturn(new JarInfo(emptySet(), emptySet(), emptyList()));
+          return jarExplorer;
+        });
 
     Map<String, Object> attributes =
         ImmutableMap.of(org.mule.runtime.module.artifact.api.descriptor.BundleDescriptor.class.getName(),
