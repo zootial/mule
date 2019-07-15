@@ -9,6 +9,11 @@ package org.mule.runtime.module.deployment.impl.internal.maven;
 import static com.vdurmont.semver4j.Semver.SemverType.LOOSE;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
+<<<<<<< HEAD
+=======
+import static java.util.stream.Collectors.toSet;
+
+>>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
 import org.mule.runtime.module.artifact.api.descriptor.BundleDependency;
 import org.mule.runtime.module.artifact.api.descriptor.BundleDescriptor;
 import org.mule.runtime.module.artifact.api.descriptor.BundleScope;
@@ -22,7 +27,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.Plugin;
@@ -89,7 +93,7 @@ public class HeavyweightClassLoaderModelBuilder extends ArtifactClassLoaderModel
                                                                                               plugin.getAdditionalDependencies()
                                                                                                   .stream()
                                                                                                   .map(this::toBundleDependency)
-                                                                                                  .collect(Collectors.toSet()))));
+                                                                                                  .collect(toSet()))));
   }
 
   private boolean areSameDependency(org.mule.tools.api.classloader.model.Plugin plugin, BundleDependency dependency) {
@@ -103,7 +107,9 @@ public class HeavyweightClassLoaderModelBuilder extends ArtifactClassLoaderModel
       builder.setScope(BundleScope.valueOf(artifact.getArtifactCoordinates().getScope().toUpperCase()));
     }
     return builder
-        .setBundleUri(new File(artifactFolder, artifact.getUri().toString()).toURI())
+        .setBundleUri(artifact.getUri().isAbsolute()
+            ? artifact.getUri()
+            : new File(artifactFolder, artifact.getUri().toString()).toURI())
         .setDescriptor(new BundleDescriptor.Builder()
             .setArtifactId(artifact.getArtifactCoordinates().getArtifactId())
             .setGroupId(artifact.getArtifactCoordinates().getGroupId())

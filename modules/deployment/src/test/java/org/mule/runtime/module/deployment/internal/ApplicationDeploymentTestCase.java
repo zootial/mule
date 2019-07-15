@@ -127,6 +127,9 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
   // Classes and JAR resources
   private static File pluginEcho3TestClassFile;
   private static File pluginEcho2TestClassFile;
+  private static File pluginForbiddenJavaEchoTestClassFile;
+  private static File pluginForbiddenMuleContainerEchoTestClassFile;
+  private static File pluginForbiddenMuleThirdPartyEchoTestClassFile;
   private static File privilegedExtensionV1JarFile;
 
   // Application artifact builders
@@ -155,6 +158,15 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
         new CompilerUtils.SingleClassCompiler().dependingOn(barUtils2_0JarFile)
             .compile(getResourceFile("/org/foo/echo/Plugin2Echo.java"));
     pluginEcho3TestClassFile = new CompilerUtils.SingleClassCompiler().compile(getResourceFile("/org/foo/echo/Plugin3Echo.java"));
+    pluginForbiddenJavaEchoTestClassFile =
+        new CompilerUtils.SingleClassCompiler().dependingOn(barUtilsForbiddenJavaJarFile)
+            .compile(getResourceFile("/org/foo/echo/PluginForbiddenJavaEcho.java"));
+    pluginForbiddenMuleContainerEchoTestClassFile =
+        new CompilerUtils.SingleClassCompiler().dependingOn(barUtilsForbiddenMuleContainerJarFile)
+            .compile(getResourceFile("/org/foo/echo/PluginForbiddenMuleContainerEcho.java"));
+    pluginForbiddenMuleThirdPartyEchoTestClassFile =
+        new CompilerUtils.SingleClassCompiler().dependingOn(barUtilsForbiddenMuleThirdPartyJarFile)
+            .compile(getResourceFile("/org/foo/echo/PluginForbiddenMuleThirdPartyEcho.java"));
 
     privilegedExtensionV1JarFile =
         new CompilerUtils.ExtensionCompiler().compiling(getResourceFile("/org/foo/privileged/PrivilegedExtension.java"),
@@ -164,6 +176,28 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
 
   public ApplicationDeploymentTestCase(boolean parallelDeployment) {
     super(parallelDeployment);
+<<<<<<< HEAD
+=======
+    this.classloaderModelVersion = classloaderModelVersion;
+  }
+
+  @Before
+  public void before() {
+    incompleteAppFileBuilder = appFileBuilder("incomplete-app").definedBy("incomplete-app-config.xml");
+    brokenAppFileBuilder = appFileBuilder("broken-app").corrupted();
+    brokenAppWithFunkyNameAppFileBuilder = appFileBuilder("broken-app+", brokenAppFileBuilder);
+    waitAppFileBuilder = appFileBuilder("wait-app").definedBy("wait-app-config.xml");
+    dummyAppDescriptorWithPropsFileBuilder = appFileBuilder("dummy-app-with-props")
+        .definedBy("dummy-app-with-props-config.xml")
+        .containingClass(echoTestClassFile,
+                         "org/foo/EchoTest.class");
+
+    // Application plugin artifact builders
+    echoPluginWithLib1 = new ArtifactPluginFileBuilder("echoPlugin1")
+        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo")
+        .dependingOn(new JarFileBuilder("barUtils1", barUtils1_0JarFile))
+        .containingClass(pluginEcho1TestClassFile, "org/foo/Plugin1Echo.class");
+>>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
   }
 
   @Test
@@ -1262,7 +1296,7 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
   public void deploysAppWithExportedPackagePrecedenceOverPlugin() throws Exception {
     // Defines a plugin that contains org.bar package, which is also exported on the application
     ArtifactPluginFileBuilder echoPluginWithoutLib1 = new ArtifactPluginFileBuilder("echoPlugin1")
-        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo")
+        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo,org.bar")
         .containingClass(pluginEcho1TestClassFile, "org/foo/Plugin1Echo.class")
         .dependingOn(new JarFileBuilder("barUtils2_0", barUtils2_0JarFile));
 
@@ -1282,19 +1316,101 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
   }
 
   @Test
+  @Issue("MULE-17112")
+  @Description("If a plugin uses a library and the application sets another version of that library as a sharedLib, the plugin internally uses its own version of the lib and not the app's. "
+      + "Similar to deploysAppWithLibDifferentThanPlugin, but the bar2 dep in the app is shared in this case")
+  public void pluginWithDependencyAndConflictingVersionSharedByApp() throws Exception {
+    final ApplicationFileBuilder differentLibPluginAppFileBuilder = appFileBuilder("appWithLibDifferentThanPlugin")
+        .definedBy("app-plugin-different-lib-config.xml")
+        .dependingOn(echoPluginWithLib1)
+        .dependingOnSharedLibrary(new JarFileBuilder("barUtils2_0", barUtils2_0JarFile))
+        .containingClass(pluginEcho2TestClassFile, "org/foo/echo/Plugin2Echo.class");
+
+    addPackedAppFromBuilder(differentLibPluginAppFileBuilder);
+
+    startDeployment();
+
+    assertDeploymentSuccess(applicationDeploymentListener, differentLibPluginAppFileBuilder.getId());
+
+    executeApplicationFlow("main");
+  }
+
+  @Test
+  @Description("Ensure that when a plugin2 depends on plugin1, when using something exported from plugin1, that is used")
+  public void pluginDependingAndExportingFromOtherPlugin() throws Exception {
+    ArtifactPluginFileBuilder echoPluginWithLib1 = new ArtifactPluginFileBuilder("echoPlugin1")
+        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo,org.bar")
+        .dependingOn(new JarFileBuilder("barUtils2", barUtils2_0JarFile))
+        .containingClass(pluginEcho1TestClassFile, "org/foo/Plugin1Echo.class");
+
+    // this plugin depends on a version of bar but will actually use the one from the dependant plugin
+    ArtifactPluginFileBuilder echoPluginWithLib2 = new ArtifactPluginFileBuilder("echoPlugin2")
+        // org.foo and org.bar are exported because plugin1 exports them.
+        // Similar to how the dependency beteween http and sockets work.
+        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo.echo,org.foo,org.bar")
+        .dependingOn(echoPluginWithLib1)
+        .containingClass(pluginEcho2TestClassFile, "org/foo/echo/Plugin2Echo.class");
+
+    final ApplicationFileBuilder usesPlugin2 = appFileBuilder("usesPlugin3")
+        .definedBy("app-with-echo2-plugin-config.xml")
+        .dependingOn(echoPluginWithLib2);
+
+    addPackedAppFromBuilder(usesPlugin2);
+
+    startDeployment();
+
+    assertDeploymentSuccess(applicationDeploymentListener, usesPlugin2.getId());
+
+    executeApplicationFlow("main");
+  }
+
+  @Test
+  @Description("Similar to pluginDependingAndExportingFromOtherPlugin, but for the case when there is no dependency between plugins. When plugin2 wants to use something local that is also exported by plugin1, the dependency local to plugin2 is used")
+  public void pluginNotDependingAndExportingFromOtherPlugin() throws Exception {
+    ArtifactPluginFileBuilder echoPluginWithLib1 = new ArtifactPluginFileBuilder("echoPlugin1")
+        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo,org.bar")
+        .dependingOn(new JarFileBuilder("barUtils1", barUtils1_0JarFile))
+        .containingClass(pluginEcho1TestClassFile, "org/foo/Plugin1Echo.class");
+
+    // this plugin depends on a version of bar but will actually use the one from the dependant plugin
+    ArtifactPluginFileBuilder echoPluginWithLib2 = new ArtifactPluginFileBuilder("echoPlugin2")
+        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo.echo")
+        .dependingOn(new JarFileBuilder("barUtils2", barUtils2_0JarFile))
+        .containingClass(pluginEcho2TestClassFile, "org/foo/echo/Plugin2Echo.class");
+
+    final ApplicationFileBuilder usesPlugin2 = appFileBuilder("usesPlugin3")
+        .definedBy("app-with-echo2-plugin-config.xml")
+        .dependingOn(echoPluginWithLib1)
+        .dependingOn(echoPluginWithLib2);
+
+    addPackedAppFromBuilder(usesPlugin2);
+
+    startDeployment();
+
+    assertDeploymentSuccess(applicationDeploymentListener, usesPlugin2.getId());
+
+    executeApplicationFlow("main");
+  }
+
+  @Test
   @Issue("MULE-13756")
   @Description("Tests that code called form plugin's Processor cannot access internal resources/packages of the application")
-  public void deploysAppWithNotExportedPackageAndPlugin() throws Exception {
+  public void deploysAppWithLocalPackageAndPlugin() throws Exception {
     ArtifactPluginFileBuilder loadsAppResourcePlugin = new ArtifactPluginFileBuilder("loadsAppResourcePlugin")
         .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo")
         .containingClass(loadsAppResourceCallbackClassFile, "org/foo/LoadsAppResourceCallback.class");
 
+<<<<<<< HEAD
     ApplicationFileBuilder nonExposingAppFileBuilder = new ApplicationFileBuilder("non-exposing-app")
         .configuredWith(EXPORTED_PACKAGES, "org.bar1")
+=======
+    ApplicationFileBuilder nonExposingAppFileBuilder = appFileBuilder("non-exposing-app")
+        .configuredWith(EXPORTED_PACKAGES, "org.bar")
+>>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
         .configuredWith(EXPORTED_RESOURCES, "test-resource.txt")
         .definedBy("app-with-loads-app-resource-plugin-config.xml")
-        .containingClass(barUtils1ClassFile, "org/bar1/BarUtils.class")
-        .containingClass(barUtils2ClassFile, "org/bar2/BarUtils.class")
+        .containingClass(barUtils1ClassFile, "org/bar/BarUtils.class")
+        .containingClass(echoTestClassFile, "org/foo/EchoTest.class")
         .containingResource("test-resource.txt", "test-resource.txt")
         .containingResource("test-resource.txt", "test-resource-not-exported.txt")
         .dependingOn(loadsAppResourcePlugin);
@@ -1311,14 +1427,20 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
   @Test
   @Issue("MULE-13756")
   @Description("Tests that code called form application's Processor can access internal resources/packages of the application")
+<<<<<<< HEAD
   public void deploysAppWithNotExportedPackage() throws Exception {
     ApplicationFileBuilder nonExposingAppFileBuilder = new ApplicationFileBuilder("non-exposing-app")
         .configuredWith(EXPORTED_PACKAGES, "org.bar1")
+=======
+  public void deploysAppWithLocalPackage() throws Exception {
+    ApplicationFileBuilder nonExposingAppFileBuilder = appFileBuilder("non-exposing-app")
+        .configuredWith(EXPORTED_PACKAGES, "org.bar")
+>>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
         .configuredWith(EXPORTED_RESOURCES, "test-resource.txt")
         .definedBy("app-with-loads-app-resource-plugin-config.xml")
         .containingClass(loadsAppResourceCallbackClassFile, "org/foo/LoadsAppResourceCallback.class")
-        .containingClass(barUtils1ClassFile, "org/bar1/BarUtils.class")
-        .containingClass(barUtils2ClassFile, "org/bar2/BarUtils.class")
+        .containingClass(barUtils1ClassFile, "org/bar/BarUtils.class")
+        .containingClass(echoTestClassFile, "org/foo/EchoTest.class")
         .containingResource("test-resource.txt", "test-resource.txt")
         .containingResource("test-resource.txt", "test-resource-not-exported.txt");
 
@@ -1334,7 +1456,7 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
   @Test
   @Issue("MULE-13756")
   @Description("Tests that code called form plugin's ProcessorInterceptor cannot access internal resources/packages of the application")
-  public void deploysAppWithNotExportedPackageAndPluginWithInterceptors() throws Exception {
+  public void deploysAppWithLocalPackageAndPluginWithInterceptors() throws Exception {
     File loadsAppResourceInterceptorFactoryClassFile =
         new SingleClassCompiler().compile(getResourceFile("/org/foo/LoadsAppResourceInterceptorFactory.java"));
     File loadsAppResourceInterceptorClassFile =
@@ -1348,12 +1470,17 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
             .containingResource("registry-bootstrap-loads-app-resource-pif.properties",
                                 "META-INF/org/mule/runtime/core/config/registry-bootstrap.properties");
 
+<<<<<<< HEAD
     ApplicationFileBuilder nonExposingAppFileBuilder = new ApplicationFileBuilder("non-exposing-app")
         .configuredWith(EXPORTED_PACKAGES, "org.bar1")
+=======
+    ApplicationFileBuilder nonExposingAppFileBuilder = appFileBuilder("non-exposing-app")
+        .configuredWith(EXPORTED_PACKAGES, "org.bar")
+>>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
         .configuredWith(EXPORTED_RESOURCES, "test-resource.txt")
         .definedBy("app-with-plugin-bootstrap.xml")
-        .containingClass(barUtils1ClassFile, "org/bar1/BarUtils.class")
-        .containingClass(barUtils2ClassFile, "org/bar2/BarUtils.class")
+        .containingClass(barUtils1ClassFile, "org/bar/BarUtils.class")
+        .containingClass(echoTestClassFile, "org/foo/EchoTest.class")
         .containingResource("test-resource.txt", "test-resource.txt")
         .containingResource("test-resource.txt", "test-resource-not-exported.txt")
         .dependingOn(loadsAppResourceInterceptorPlugin);
@@ -1370,20 +1497,25 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
   @Test
   @Issue("MULE-13756")
   @Description("Tests that code called form application's ProcessorInterceptor can access internal resources/packages of the application")
-  public void deploysAppWithInterceptorsAndNotExportedPackage() throws Exception {
+  public void deploysAppWithInterceptorsAndLocalPackage() throws Exception {
     File loadsOwnResourceInterceptorFactoryClassFile =
         new SingleClassCompiler().compile(getResourceFile("/org/foo/LoadsOwnResourceInterceptorFactory.java"));
     File loadsOwnResourceInterceptorClassFile =
         new SingleClassCompiler().compile(getResourceFile("/org/foo/LoadsOwnResourceInterceptor.java"));
 
+<<<<<<< HEAD
     ApplicationFileBuilder nonExposingAppFileBuilder = new ApplicationFileBuilder("non-exposing-app")
         .configuredWith(EXPORTED_PACKAGES, "org.bar1")
+=======
+    ApplicationFileBuilder nonExposingAppFileBuilder = appFileBuilder("non-exposing-app")
+        .configuredWith(EXPORTED_PACKAGES, "org.bar")
+>>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
         .configuredWith(EXPORTED_RESOURCES, "test-resource.txt")
         .definedBy("app-with-interceptor.xml")
         .containingClass(loadsOwnResourceInterceptorFactoryClassFile, "org/foo/LoadsOwnResourceInterceptorFactory.class")
         .containingClass(loadsOwnResourceInterceptorClassFile, "org/foo/LoadsOwnResourceInterceptor.class")
-        .containingClass(barUtils1ClassFile, "org/bar1/BarUtils.class")
-        .containingClass(barUtils2ClassFile, "org/bar2/BarUtils.class")
+        .containingClass(barUtils1ClassFile, "org/bar/BarUtils.class")
+        .containingClass(echoTestClassFile, "org/foo/EchoTest.class")
         .containingResource("test-resource.txt", "test-resource.txt")
         .containingResource("test-resource.txt", "test-resource-not-exported.txt");
 
@@ -1994,6 +2126,190 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
                                () -> addPackedAppFromBuilder(emptyAppFileBuilder));
   }
 
+<<<<<<< HEAD
+=======
+  @Test
+  @Issue("MULE-16995")
+  @Description("This test covers an scenario where an app declares extensions-api as a shared library while using a privileged extension.")
+  public void appWithUnneededExtensionsApiDepDeploys() throws Exception {
+    final ApplicationFileBuilder applicationFileBuilder = appFileBuilder("privilegedPluginApp")
+        .definedBy(APP_WITH_PRIVILEGED_EXTENSION_PLUGIN_CONFIG)
+        .dependingOn(createPrivilegedExtensionPlugin())
+        .dependingOnSharedLibrary(new JarFileBuilder("mule-extensions-api", new File(getProperty("extensionsApiLib")))
+            .withGroupId("org.mule.runtime")
+            .withVersion("1.1.6"));
+    addPackedAppFromBuilder(applicationFileBuilder);
+
+    startDeployment();
+    assertDeploymentSuccess(applicationDeploymentListener, applicationFileBuilder.getId());
+  }
+
+  @Test
+  public void appIncludingForbiddenJavaClass() throws Exception {
+    final ApplicationFileBuilder forbidden = appFileBuilder("forbidden")
+        .definedBy("app-with-forbidden-java-echo-plugin-config.xml")
+        .containingClass(pluginForbiddenJavaEchoTestClassFile, "org/foo/echo/PluginForbiddenJavaEcho.class")
+        .dependingOn(new JarFileBuilder("barUtilsForbiddenJavaJarFile", barUtilsForbiddenJavaJarFile));
+
+    addPackedAppFromBuilder(forbidden);
+
+    startDeployment();
+
+    assertDeploymentSuccess(applicationDeploymentListener, forbidden.getId());
+
+    try {
+      executeApplicationFlow("main");
+      fail("Expected to fail as there should be a missing class");
+    } catch (Exception e) {
+      assertThat(e.getCause().getCause(), instanceOf(MuleFatalException.class));
+      assertThat(e.getCause().getCause().getCause(), instanceOf(NoClassDefFoundError.class));
+      assertThat(e.getCause().getCause().getCause().getMessage(), containsString("java/lang/BarUtils"));
+    }
+  }
+
+  @Test
+  public void appIncludingForbiddenMuleContainerClass() throws Exception {
+    final ApplicationFileBuilder forbidden = appFileBuilder("forbidden")
+        .definedBy("app-with-forbidden-mule-echo-plugin-config.xml")
+        .containingClass(pluginForbiddenMuleContainerEchoTestClassFile, "org/foo/echo/PluginForbiddenMuleContainerEcho.class")
+        .dependingOn(new JarFileBuilder("barUtilsForbiddenMuleContainerJarFile", barUtilsForbiddenMuleContainerJarFile));
+
+    addPackedAppFromBuilder(forbidden);
+
+    startDeployment();
+
+    assertDeploymentSuccess(applicationDeploymentListener, forbidden.getId());
+
+    try {
+      executeApplicationFlow("main");
+      fail("Expected to fail as there should be a missing class");
+    } catch (Exception e) {
+      assertThat(e.getCause().getCause(), instanceOf(MuleFatalException.class));
+      assertThat(e.getCause().getCause().getCause(), instanceOf(NoClassDefFoundError.class));
+      assertThat(e.getCause().getCause().getCause().getMessage(), containsString("org/mule/runtime/api/util/BarUtils"));
+    }
+  }
+
+  @Test
+  public void appIncludingForbiddenMuleContainerThirdParty() throws Exception {
+    final ApplicationFileBuilder forbidden = appFileBuilder("forbidden")
+        .definedBy("app-with-forbidden-mule3rd-echo-plugin-config.xml")
+        .containingClass(pluginForbiddenMuleThirdPartyEchoTestClassFile, "org/foo/echo/PluginForbiddenMuleThirdPartyEcho.class")
+        .dependingOn(new JarFileBuilder("barUtilsForbiddenMuleThirdPartyJarFile", barUtilsForbiddenMuleThirdPartyJarFile));
+
+    addPackedAppFromBuilder(forbidden);
+
+    startDeployment();
+
+    assertDeploymentSuccess(applicationDeploymentListener, forbidden.getId());
+
+    try {
+      executeApplicationFlow("main");
+      fail("Expected to fail as there should be a missing class");
+    } catch (Exception e) {
+      assertThat(e.getCause().getCause(), instanceOf(MuleFatalException.class));
+      assertThat(e.getCause().getCause().getCause(), instanceOf(NoClassDefFoundError.class));
+      assertThat(e.getCause().getCause().getCause().getMessage(), containsString("org/slf4j/BarUtils"));
+    }
+  }
+
+  @Test
+  public void pluginIncludingForbiddenJavaClass() throws Exception {
+    ArtifactPluginFileBuilder echoPluginWithLib = new ArtifactPluginFileBuilder("echoPlugin2")
+        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo.echo")
+        .containingClass(pluginForbiddenJavaEchoTestClassFile, "org/foo/echo/PluginForbiddenJavaEcho.class")
+        .dependingOn(new JarFileBuilder("barUtilsForbiddenJavaJarFile", barUtilsForbiddenJavaJarFile));
+
+    final ApplicationFileBuilder usesPlugin2 = appFileBuilder("usesPlugin2")
+        .definedBy("app-with-forbidden-java-echo-plugin-config.xml")
+        .dependingOn(echoPluginWithLib);
+
+    addPackedAppFromBuilder(usesPlugin2);
+
+    startDeployment();
+
+    assertDeploymentSuccess(applicationDeploymentListener, usesPlugin2.getId());
+
+    try {
+      executeApplicationFlow("main");
+      fail("Expected to fail as there should be a missing class");
+    } catch (Exception e) {
+      assertThat(e.getCause().getCause(), instanceOf(MuleFatalException.class));
+      assertThat(e.getCause().getCause().getCause(), instanceOf(NoClassDefFoundError.class));
+      assertThat(e.getCause().getCause().getCause().getMessage(), containsString("java/lang/BarUtils"));
+    }
+  }
+
+  @Test
+  public void pluginIncludingForbiddenMuleContainerClass() throws Exception {
+    ArtifactPluginFileBuilder echoPluginWithLib = new ArtifactPluginFileBuilder("echoPlugin2")
+        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo.echo")
+        .containingClass(pluginForbiddenMuleContainerEchoTestClassFile, "org/foo/echo/PluginForbiddenMuleContainerEcho.class")
+        .dependingOn(new JarFileBuilder("barUtilsForbiddenMuleContainerJarFile", barUtilsForbiddenMuleContainerJarFile));
+
+    final ApplicationFileBuilder usesPlugin2 = appFileBuilder("usesPlugin2")
+        .definedBy("app-with-forbidden-mule-echo-plugin-config.xml")
+        .dependingOn(echoPluginWithLib);
+
+    addPackedAppFromBuilder(usesPlugin2);
+
+    startDeployment();
+
+    assertDeploymentSuccess(applicationDeploymentListener, usesPlugin2.getId());
+
+    try {
+      executeApplicationFlow("main");
+      fail("Expected to fail as there should be a missing class");
+    } catch (Exception e) {
+      assertThat(e.getCause().getCause(), instanceOf(MuleFatalException.class));
+      assertThat(e.getCause().getCause().getCause(), instanceOf(NoClassDefFoundError.class));
+      assertThat(e.getCause().getCause().getCause().getMessage(), containsString("org/mule/runtime/api/util/BarUtils"));
+    }
+  }
+
+  @Test
+  public void pluginIncludingForbiddenMuleContainerThirdParty() throws Exception {
+    ArtifactPluginFileBuilder echoPluginWithLib = new ArtifactPluginFileBuilder("echoPlugin2")
+        .configuredWith(EXPORTED_CLASS_PACKAGES_PROPERTY, "org.foo.echo")
+        .containingClass(pluginForbiddenMuleThirdPartyEchoTestClassFile, "org/foo/echo/PluginForbiddenMuleThirdPartyEcho.class")
+        .dependingOn(new JarFileBuilder("barUtilsForbiddenMuleThirdPartyJarFile", barUtilsForbiddenMuleThirdPartyJarFile));
+
+    final ApplicationFileBuilder usesPlugin2 = appFileBuilder("usesPlugin2")
+        .definedBy("app-with-forbidden-mule3rd-echo-plugin-config.xml")
+        .dependingOn(echoPluginWithLib);
+
+    addPackedAppFromBuilder(usesPlugin2);
+
+    startDeployment();
+
+    assertDeploymentSuccess(applicationDeploymentListener, usesPlugin2.getId());
+
+    try {
+      executeApplicationFlow("main");
+      fail("Expected to fail as there should be a missing class");
+    } catch (Exception e) {
+      assertThat(e.getCause().getCause(), instanceOf(MuleFatalException.class));
+      assertThat(e.getCause().getCause().getCause(), instanceOf(NoClassDefFoundError.class));
+      assertThat(e.getCause().getCause().getCause().getMessage(), containsString("org/slf4j/BarUtils"));
+    }
+  }
+
+  protected ApplicationFileBuilder appFileBuilder(final String artifactId) {
+    return new ApplicationFileBuilder(artifactId)
+        .withClassloaderModelVersion(classloaderModelVersion);
+  }
+
+  protected ApplicationFileBuilder appFileBuilder(String artifactId, ApplicationFileBuilder source) {
+    return new ApplicationFileBuilder(artifactId, source)
+        .withClassloaderModelVersion(classloaderModelVersion);
+  }
+
+  protected ApplicationFileBuilder appFileBuilder(String artifactId, boolean upperCaseInExtension) {
+    return new ApplicationFileBuilder(artifactId, upperCaseInExtension)
+        .withClassloaderModelVersion(classloaderModelVersion);
+  }
+
+>>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
   private void testTempFileOnRedeployment(CheckedRunnable deployApp, CheckedRunnable redeployApp) throws Exception {
     final String TEST_FILE_NAME = "testFile";
     startDeployment();
