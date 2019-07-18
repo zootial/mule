@@ -9,18 +9,21 @@ package org.mule.runtime.config.internal.dsl.model;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.mule.runtime.ast.graph.api.ArtifactAstGraphFactory.generateFor;
+import static org.mule.runtime.config.api.dsl.CoreDslConstants.CONFIGURATION_IDENTIFIER;
 import static org.mule.runtime.config.internal.dsl.model.DependencyNode.Type.TOP_LEVEL;
 
-import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.Location;
+import org.mule.runtime.ast.api.ArtifactAst;
 import org.mule.runtime.ast.api.ComponentAst;
+import org.mule.runtime.ast.graph.api.ArtifactAstGraph;
+import org.mule.runtime.ast.graph.api.ArtifactAstGraphFactory;
 import org.mule.runtime.config.api.LazyComponentInitializer;
 import org.mule.runtime.config.internal.model.ApplicationModel;
 import org.mule.runtime.config.internal.model.ComponentModel;
 
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -56,7 +59,8 @@ public class MinimalApplicationModelGenerator {
    * Creates a new instance of the minimal application generator.
    *
    * @param dependencyResolver a {@link ConfigurationDependencyResolver} associated with an {@link ApplicationModel}
-   * @param ignoreAlwaysEnabled {@code true} if consider those components that will not be referenced and have to be enabled anyways.
+   * @param ignoreAlwaysEnabled {@code true} if consider those components that will not be referenced and have to be enabled
+   *        anyways.
    */
   public MinimalApplicationModelGenerator(ConfigurationDependencyResolver dependencyResolver, boolean ignoreAlwaysEnabled) {
     this.dependencyResolver = dependencyResolver;
@@ -70,16 +74,24 @@ public class MinimalApplicationModelGenerator {
    * @param predicate to select the {@link ComponentModel componentModels} to be enabled.
    * @return the generated {@link ApplicationModel} with the minimal set of {@link ComponentModel}s required.
    */
-  public ApplicationModel getMinimalModel(Predicate<ComponentAst> predicate) {
-    List<ComponentAst> required = dependencyResolver.findRequiredComponentModels(predicate);
+  public ArtifactAst getMinimalModel(Predicate<ComponentAst> predicate) {
+    return generateFor(dependencyResolver.getApplicationModel())
+        .minimalArtifactFor(predicate
+            .or(componentModel -> componentModel.getIdentifier().equals(CONFIGURATION_IDENTIFIER))
+            .or(comp -> !ignoreAlwaysEnabled
+                && ("spring".equals(comp.getIdentifier().getNamespace())
+                    && ("config".equals(comp.getIdentifier().getName())
+                        || "security-manager".equals(comp.getIdentifier().getName())))));
 
-    required.stream().forEach(componentModel -> {
-      final ComponentLocation componentLocation = componentModel.getLocation();
-      if (componentLocation != null) {
-        enableComponentDependencies(componentModel);
-      }
-    });
-    return dependencyResolver.getApplicationModel();
+    // List<ComponentAst> required = dependencyResolver.findRequiredComponentModels(predicate);
+    //
+    // required.stream().forEach(componentModel -> {
+    // final ComponentLocation componentLocation = componentModel.getLocation();
+    // if (componentLocation != null) {
+    // enableComponentDependencies(componentModel);
+    // }
+    // });
+    // return dependencyResolver.getApplicationModel();
   }
 
   /**
@@ -89,10 +101,12 @@ public class MinimalApplicationModelGenerator {
    * @return the generated {@link ApplicationModel} with the minimal set of {@link ComponentModel}s required.
    * @throws NoSuchComponentModelException if the location doesn't match to a component.
    */
-  public ApplicationModel getMinimalModel(Location location) {
-    ComponentAst requestedComponentModel = (ComponentAst) dependencyResolver.findRequiredComponentModel(location);
-    enableComponentDependencies(requestedComponentModel);
-    return dependencyResolver.getApplicationModel();
+  public ArtifactAst getMinimalModel(Location location) {
+    return getMinimalModel(comp -> comp.getLocation() != null && comp.getLocation().toString().equals(location.toString()));
+
+    // ComponentAst requestedComponentModel = (ComponentAst) dependencyResolver.findRequiredComponentModel(location);
+    // enableComponentDependencies(requestedComponentModel);
+    // return dependencyResolver.getApplicationModel();
   }
 
   /**
@@ -101,9 +115,23 @@ public class MinimalApplicationModelGenerator {
    * @param requestedComponentModel the requested {@link ComponentModel} to be enabled.
    */
   private void enableComponentDependencies(ComponentAst requestedComponentModel) {
+
+
+    // final List<String> collect = requestedComponentModel.getComponentModel().get().getAllParameterModels().stream()
+    // .filter(paramModel -> !paramModel.getAllowedStereotypes().isEmpty())
+    // .map(paramModel -> paramModel.getName())
+    // .collect(Collectors.toList());
+
+    final ArtifactAstGraph generateFor = ArtifactAstGraphFactory.generateFor(this.dependencyResolver.getApplicationModel());
+
+
+    System.out.println(requestedComponentModel.getIdentifier());
+    System.out.println(generateFor.toString());
+
+
     final String requestComponentModelName = requestedComponentModel.getName().orElse(null);
     final Set<DependencyNode> componentDependencies =
-        dependencyResolver.resolveComponentDependencies((ComponentModel) requestedComponentModel);
+        dependencyResolver.resolveComponentDependencies(requestedComponentModel);
     final Set<DependencyNode> alwaysEnabledComponents =
         ignoreAlwaysEnabled ? emptySet() : dependencyResolver.resolveAlwaysEnabledComponents();
     final ImmutableSet.Builder<DependencyNode> otherRequiredGlobalComponentsSetBuilder =
