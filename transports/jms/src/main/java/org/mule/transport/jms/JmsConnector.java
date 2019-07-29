@@ -248,8 +248,6 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
         {
             redeliveryHandlerFactory = new AutoDiscoveryRedeliveryHandlerFactory(this);
         }
-        deferredCloseThread = new DeferredJmsResourceCloser(this, deferredCloseQueue);
-        deferredCloseThread.start();
         try
         {
             muleContext.registerListener(new ConnectionNotificationListener<ConnectionNotification>()
@@ -385,6 +383,8 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
     @Override
     protected void doDispose()
     {
+        stopDeferredCloseThreadIfNecessary();
+
         if (connection != null)
         {
             try
@@ -398,15 +398,6 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
             connection = null;
         }
 
-        if (!deferredCloseQueue.isEmpty())
-        {
-            deferredCloseThread.waitForEmptyQueueOrTimeout(20, SECONDS);
-            deferredCloseQueue.clear();
-        }
-        deferredCloseThread.interrupt();
-        // Clear all remaining closables
-        // TODO: Maybe add some mechanism for waiting for reamining resources to be closed.
-        deferredCloseQueue.clear();
 
         if (connectionFactory instanceof Disposable)
         {
@@ -572,7 +563,6 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
                 isHandlingException.set(true);
                 muleContext.getExceptionListener().handleException(new ConnectException(jmsException, this));
             }
-
         }
     }
 
@@ -727,6 +717,8 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
             try
             {
                 connection.start();
+                deferredCloseThread = new DeferredJmsResourceCloser(this, deferredCloseQueue);
+                deferredCloseThread.start();
             }
             catch (JMSException e)
             {
@@ -796,10 +788,12 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
     @Override
     protected void doStop() throws MuleException
     {
+
         if (connection != null)
         {
             try
             {
+                stopDeferredCloseThreadIfNecessary();
                 connection.stop();
             }
             catch (Exception e)
@@ -813,6 +807,20 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
         if (jndiNameResolver != null)
         {
             jndiNameResolver.stop();
+        }
+    }
+
+    private void stopDeferredCloseThreadIfNecessary()
+    {
+        if (!deferredCloseThread.isInterrupted()) {
+            // Mark deferredCloser to stop prior to connection stop
+            if (!deferredCloseQueue.isEmpty())
+            {
+                deferredCloseThread.waitForEmptyQueueOrTimeout(20, SECONDS);
+                deferredCloseQueue.clear();
+            }
+            deferredCloseThread.interrupt();
+            deferredCloseQueue.clear();
         }
     }
 
