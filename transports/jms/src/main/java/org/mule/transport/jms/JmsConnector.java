@@ -6,6 +6,7 @@
  */
 package org.mule.transport.jms;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
 import org.mule.api.Closeable;
@@ -247,7 +248,8 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
         {
             redeliveryHandlerFactory = new AutoDiscoveryRedeliveryHandlerFactory(this);
         }
-
+        deferredCloseThread = new DeferredJmsResourceCloser(this, deferredCloseQueue);
+        deferredCloseThread.start();
         try
         {
             muleContext.registerListener(new ConnectionNotificationListener<ConnectionNotification>()
@@ -395,6 +397,16 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
             }
             connection = null;
         }
+
+        if (!deferredCloseQueue.isEmpty())
+        {
+            deferredCloseThread.waitForEmptyQueueOrTimeout(20, SECONDS);
+            deferredCloseQueue.clear();
+        }
+        deferredCloseThread.interrupt();
+        // Clear all remaining closables
+        // TODO: Maybe add some mechanism for waiting for reamining resources to be closed.
+        deferredCloseQueue.clear();
 
         if (connectionFactory instanceof Disposable)
         {
@@ -698,12 +710,13 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
         {
             throw new JMSException("Cannot create session while exception is being handled");
         }
-        return jmsSupport.createSession(connection, topic, true, acknowledgementMode, noLocal);
+        return jmsSupport.createSession(connection, topic, transacted, acknowledgementMode, noLocal);
     }
 
     @Override
     protected void doStart() throws MuleException
     {
+
         // Clear connector exception handling flag
         logger.debug("Setting 'isHandlingException' flag to false");
         isHandlingException.set(false);
@@ -714,10 +727,6 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
             try
             {
                 connection.start();
-                // Create a new thread and fire it on each start call
-                // TODO: Shoould add in the interrupt method a wait stage, and some kind of kill to assure it has shutdown
-                deferredCloseThread = new DeferredJmsResourceCloser(this, deferredCloseQueue);
-                deferredCloseThread.start();
             }
             catch (JMSException e)
             {
@@ -791,15 +800,6 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
         {
             try
             {
-                if (!deferredCloseQueue.isEmpty())
-                {
-                    deferredCloseThread.waitForEmptyQueueOrTimeout(20, SECONDS);
-                    deferredCloseQueue.clear();
-                }
-                deferredCloseThread.interrupt();
-                // Clear all remaining closables
-                // TODO: Maybe add some mechanism for waiting for reamining resources to be closed.
-                deferredCloseQueue.clear();
                 connection.stop();
             }
             catch (Exception e)
