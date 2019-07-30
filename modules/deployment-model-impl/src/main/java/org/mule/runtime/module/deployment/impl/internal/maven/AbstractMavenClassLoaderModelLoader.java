@@ -46,8 +46,6 @@ import org.mule.runtime.module.reboot.api.MuleContainerBootstrapUtils;
 import org.mule.tools.api.classloader.model.Artifact;
 import org.mule.tools.api.classloader.model.ArtifactCoordinates;
 
-import com.google.common.io.PatternFilenameFilter;
-
 import java.io.File;
 import java.io.FilenameFilter;
 import java.net.MalformedURLException;
