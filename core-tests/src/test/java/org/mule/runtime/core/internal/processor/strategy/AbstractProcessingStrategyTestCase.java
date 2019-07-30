@@ -60,6 +60,7 @@ import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.Processor;
 import org.mule.runtime.core.api.processor.ReactiveProcessor.ProcessingType;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
+import org.mule.runtime.core.api.processor.strategy.ProcessingStrategyFactory;
 import org.mule.runtime.core.api.source.MessageSource.BackPressureStrategy;
 import org.mule.runtime.core.api.transaction.TransactionCoordination;
 import org.mule.runtime.core.api.util.concurrent.NamedThreadFactory;
@@ -224,7 +225,7 @@ public abstract class AbstractProcessingStrategyTestCase extends AbstractMuleCon
     asyncExecutor = new TestScheduler(CORES, EXECUTOR, false);
 
     flowBuilder = () -> builder("test", muleContext)
-        .processingStrategyFactory((muleContext, prefix) -> createProcessingStrategy(muleContext, prefix))
+        .processingStrategyFactory(createProcessingStrategyFactory())
         .source(triggerableMessageSource)
         // Avoid logging of errors by using a null exception handler.
         .messagingExceptionHandler((exception, event) -> event);
@@ -233,6 +234,10 @@ public abstract class AbstractProcessingStrategyTestCase extends AbstractMuleCon
   @Override
   protected InternalEvent.Builder getEventBuilder() throws MuleException {
     return InternalEvent.builder(create(flow, TEST_CONNECTOR_LOCATION));
+  }
+
+  protected ProcessingStrategyFactory createProcessingStrategyFactory() {
+    return (muleContext, prefix) -> createProcessingStrategy(muleContext, prefix);
   }
 
   protected abstract ProcessingStrategy createProcessingStrategy(MuleContext muleContext, String schedulersNamePrefix);
