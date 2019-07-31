@@ -518,7 +518,8 @@ public class MultiConsumerJmsMessageReceiver extends AbstractMessageReceiver
     {
         for (SubReceiver consumer : consumers)
         {
-            consumer.setEnabled(false);
+            // TODO: Remove disable consumer logic, and instead, close them
+            consumer.closeConsumer();
         }
     }
 
