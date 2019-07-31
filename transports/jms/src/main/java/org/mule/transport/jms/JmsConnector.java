@@ -203,6 +203,11 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
         return isHandlingException.get();
     }
 
+    public void setIsHandlingException(boolean handlingException)
+    {
+        isHandlingException.set(handlingException);
+    }
+
     private AtomicBoolean isHandlingException = new AtomicBoolean(false);
 
     protected BlockingQueue<Object> deferredCloseQueue = new LinkedBlockingQueue<>();
