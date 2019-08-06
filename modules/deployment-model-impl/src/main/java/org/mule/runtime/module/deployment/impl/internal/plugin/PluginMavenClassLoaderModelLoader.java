@@ -9,6 +9,7 @@ package org.mule.runtime.module.deployment.impl.internal.plugin;
 import static org.mule.runtime.core.api.config.bootstrap.ArtifactType.PLUGIN;
 import static org.mule.runtime.deployment.model.api.artifact.ArtifactDescriptorConstants.MULE_LOADER_ID;
 import static org.mule.tools.api.classloader.ClassLoaderModelJsonSerializer.deserialize;
+
 import org.mule.maven.client.api.MavenClient;
 import org.mule.runtime.core.api.config.bootstrap.ArtifactType;
 import org.mule.runtime.module.artifact.api.descriptor.BundleDependency;
@@ -20,24 +21,13 @@ import org.mule.runtime.module.deployment.impl.internal.maven.HeavyweightClassLo
 import org.mule.runtime.module.deployment.impl.internal.maven.LightweightClassLoaderModelBuilder;
 
 import java.io.File;
-<<<<<<< HEAD
-=======
 import java.net.URL;
-import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.List;
->>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
 import java.util.Map;
 import java.util.Set;
 
-<<<<<<< HEAD
-=======
-import org.apache.maven.model.Model;
->>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * This class is responsible of returning the {@link BundleDescriptor} of a given plugin's location and also creating a
@@ -101,143 +91,6 @@ public class PluginMavenClassLoaderModelLoader extends AbstractMavenClassLoaderM
     return heavyweightClassLoaderModelBuilder;
   }
 
-<<<<<<< HEAD
-=======
-  @Override
-  protected Set<BundleDependency> resolveArtifactDependencies(File artifactFile, Map<String, Object> attributes,
-                                                              ArtifactType artifactType) {
-    if (attributes instanceof PluginExtendedClassLoaderModelAttributes) {
-      BundleDescriptor pluginBundleDescriptor = (BundleDescriptor) attributes.get(BundleDescriptor.class.getName());
-      ArtifactDescriptor deployableArtifactDescriptor =
-          ((PluginExtendedClassLoaderModelAttributes) attributes).getDeployableArtifactDescriptor();
-      Set<BundleDependency> deployableArtifactDescriptorDependencies =
-          deployableArtifactDescriptor.getClassLoaderModel().getDependencies();
-      BundleDependency pluginDependencyInDeployableArtifact = deployableArtifactDescriptorDependencies.stream()
-          .filter(dep -> dep.getDescriptor().equals(pluginBundleDescriptor)).findFirst()
-          .orElseThrow(() -> new MuleRuntimeException(createStaticMessage("Could not find required descriptor. Looking for: "
-              + pluginBundleDescriptor + " in " + deployableArtifactDescriptorDependencies)));
-
-      // MTF/MUnit declares the mule-plugin being tested as system scope therefore its transitive dependencies
-      // will not be included in the dependency graph of the deployable artifact and we need to use Mule Maven Client
-      // to resolve its dependencies
-      if (!SYSTEM.equals(pluginDependencyInDeployableArtifact.getScope())) {
-        return collectTransitiveDependencies(pluginDependencyInDeployableArtifact);
-      } else {
-        if (logger.isWarnEnabled()) {
-          logger.warn(format(
-                             "Resolving a mule-plugin '%s' with system scope in order to resolve its class loader model. Dependency resolution may fail due to remote repositories from the deployable artifact will not be considered. Prevent this by using compile scope instead",
-                             pluginDependencyInDeployableArtifact.getDescriptor()));
-        }
-      }
-    }
-    // Backward compatible resolution for resolving dependencies for a mule-plugin with Mule Maven Client
-    return resolveArtifactDependenciesUsingMavenClient(artifactFile);
-  }
-
-  private Set<BundleDependency> resolveArtifactDependenciesUsingMavenClient(File artifactFile) {
-    if (logger.isWarnEnabled()) {
-      logger.warn(format(
-                         "Resolving a mule-plugin from '%s' without the deployable resolution context in order to resolve its class loader model. "
-                             +
-                             "Dependency resolution may fail due to remote repositories from the deployable artifact will not be considered",
-                         artifactFile));
-    }
-
-    try (MuleSystemPluginMavenReactorResolver reactor =
-        new MuleSystemPluginMavenReactorResolver(artifactFile)) {
-
-      Optional<File> mavenRepository = ofNullable(mavenClient.getMavenConfiguration().getLocalMavenRepositoryLocation());
-      if (!mavenRepository.isPresent()) {
-        throw new MuleRuntimeException(createStaticMessage(
-                                                           format("Missing Maven local repository configuration while trying to resolve class loader model for lightweight artifact: %s",
-                                                                  artifactFile.getName())));
-      }
-
-      // reactor to resolve the mule-plugin pom and jar file from the location provided in the system dependency.
-      org.mule.maven.client.api.model.BundleDescriptor mavenClientBundleDescriptor =
-          new org.mule.maven.client.api.model.BundleDescriptor.Builder()
-              .setGroupId(reactor.getEffectiveModel().getGroupId())
-              .setArtifactId(reactor.getEffectiveModel().getArtifactId())
-              .setVersion(reactor.getEffectiveModel().getVersion())
-              .setClassifier(MULE_PLUGIN_CLASSIFIER)
-              .setType(JAR)
-              .build();
-      // It will collect the dependencies of the mule-plugin following the same rules that we have when it is declared
-      // as compile in a mule-application or mule-domain, without provided and test scope dependencies.
-      List<org.mule.maven.client.api.model.BundleDependency> dependencies =
-          mavenClient.resolveArtifactDependencies(ImmutableList.of(mavenClientBundleDescriptor),
-                                                  mavenRepository,
-                                                  of(reactor));
-      // The result will only have one dependency and that dependency will be same mule-plugin with its transitive dependencies.
-      return collectTransitiveDependencies(new DependencyConverter().convert(dependencies.get(0)));
-    }
-  }
-
-  private class MuleSystemPluginMavenReactorResolver implements MavenReactorResolver, AutoCloseable {
-
-    private final File temporaryFolder = createTempDir();
-
-    private final Model effectiveModel;
-
-    private final File pomFile;
-    private final File artifactFile;
-
-    public MuleSystemPluginMavenReactorResolver(File artifactFile) {
-      this.effectiveModel = mavenClient.getEffectiveModel(artifactFile, of(temporaryFolder));
-
-      this.pomFile = effectiveModel.getPomFile();
-      this.artifactFile = artifactFile;
-    }
-
-    public Model getEffectiveModel() {
-      return effectiveModel;
-    }
-
-    @Override
-    public File findArtifact(org.mule.maven.client.api.model.BundleDescriptor bundleDescriptor) {
-      if (checkArtifact(bundleDescriptor)) {
-        if (bundleDescriptor.getType().equals(POM)) {
-          return pomFile;
-        } else {
-          return artifactFile;
-        }
-      }
-      return null;
-    }
-
-    @Override
-    public List<String> findVersions(org.mule.maven.client.api.model.BundleDescriptor bundleDescriptor) {
-      if (checkArtifact(bundleDescriptor)) {
-        return ImmutableList.of(this.effectiveModel.getVersion());
-      }
-      return emptyList();
-    }
-
-    private boolean checkArtifact(org.mule.maven.client.api.model.BundleDescriptor bundleDescriptor) {
-      return this.effectiveModel.getGroupId().equals(bundleDescriptor.getGroupId())
-          && this.effectiveModel.getArtifactId().equals(bundleDescriptor.getArtifactId())
-          && this.effectiveModel.getVersion().equals(bundleDescriptor.getVersion());
-    }
-
-    @Override
-    public void close() {
-      deleteQuietly(temporaryFolder);
-    }
-
-  }
-
-  private Set<BundleDependency> collectTransitiveDependencies(BundleDependency rootDependency) {
-    Set<BundleDependency> allTransitiveDependencies = new HashSet<>();
-    for (BundleDependency transitiveDependency : rootDependency.getTransitiveDependencies()) {
-      allTransitiveDependencies.add(transitiveDependency);
-      if (transitiveDependency.getDescriptor().getClassifier().map(c -> !MULE_PLUGIN_CLASSIFIER.equals(c)).orElse(true)) {
-        allTransitiveDependencies.addAll(collectTransitiveDependencies(transitiveDependency));
-      }
-    }
-    return allTransitiveDependencies;
-  }
-
->>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
   private void configClassLoaderModelBuilder(ArtifactClassLoaderModelBuilder classLoaderModelBuilder,
                                              Map<String, Object> attributes) {
     if (attributes instanceof PluginExtendedClassLoaderModelAttributes) {

@@ -9,18 +9,13 @@ package org.mule.runtime.module.deployment.impl.internal.maven;
 import static com.vdurmont.semver4j.Semver.SemverType.LOOSE;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
-<<<<<<< HEAD
-=======
 import static java.util.stream.Collectors.toSet;
 
->>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
 import org.mule.runtime.module.artifact.api.descriptor.BundleDependency;
 import org.mule.runtime.module.artifact.api.descriptor.BundleDescriptor;
 import org.mule.runtime.module.artifact.api.descriptor.BundleScope;
 import org.mule.tools.api.classloader.model.AppClassLoaderModel;
 import org.mule.tools.api.classloader.model.Artifact;
-
-import com.vdurmont.semver4j.Semver;
 
 import java.io.File;
 import java.net.URI;
@@ -30,6 +25,8 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.Plugin;
+
+import com.vdurmont.semver4j.Semver;
 
 /**
  * Builder for a {@link org.mule.runtime.module.artifact.api.descriptor.ClassLoaderModel} with information from a
@@ -41,7 +38,7 @@ public class HeavyweightClassLoaderModelBuilder extends ArtifactClassLoaderModel
 
   private static final Semver CLASS_LOADER_MODEL_VERSION_110 = new Semver("1.1.0", LOOSE);
 
-  private org.mule.tools.api.classloader.model.ClassLoaderModel packagerClassLoaderModel;
+  private final org.mule.tools.api.classloader.model.ClassLoaderModel packagerClassLoaderModel;
 
   public HeavyweightClassLoaderModelBuilder(File applicationFolder, BundleDescriptor artifactBundleDescriptor,
                                             org.mule.tools.api.classloader.model.ClassLoaderModel packagerClassLoaderModel) {

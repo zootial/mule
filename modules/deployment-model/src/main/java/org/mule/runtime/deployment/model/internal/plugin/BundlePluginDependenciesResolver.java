@@ -13,14 +13,13 @@ import static java.util.Optional.of;
 import static java.util.stream.Collectors.toSet;
 import static org.mule.runtime.deployment.model.api.plugin.ArtifactPluginDescriptor.MULE_PLUGIN_CLASSIFIER;
 import static org.mule.runtime.module.artifact.api.descriptor.BundleDescriptorUtils.isCompatibleVersion;
+
 import org.mule.runtime.deployment.model.api.plugin.ArtifactPluginDescriptor;
 import org.mule.runtime.module.artifact.api.descriptor.ArtifactDescriptorFactory;
 import org.mule.runtime.module.artifact.api.descriptor.BundleDependency;
 import org.mule.runtime.module.artifact.api.descriptor.BundleDescriptor;
 import org.mule.runtime.module.artifact.api.descriptor.ClassLoaderModel;
 import org.mule.runtime.module.artifact.api.descriptor.ClassLoaderModel.ClassLoaderModelBuilder;
-
-import com.google.common.collect.ImmutableSet;
 
 import java.io.File;
 import java.net.URL;
@@ -36,6 +35,8 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Resolves plugin dependencies considering the plugin name only.
@@ -276,7 +277,9 @@ public class BundlePluginDependenciesResolver implements PluginDependenciesResol
         .dependingOn(originalClassLoaderModel.getDependencies())
         .exportingPrivilegedPackages(originalClassLoaderModel.getPrivilegedExportedPackages(),
                                      originalClassLoaderModel.getPrivilegedArtifacts())
-        .exportingResources(originalClassLoaderModel.getExportedResources());
+        .exportingResources(originalClassLoaderModel.getExportedResources())
+        .withLocalPackages(originalClassLoaderModel.getLocalPackages())
+        .withLocalResources(originalClassLoaderModel.getLocalResources());
     for (URL url : originalClassLoaderModel.getUrls()) {
       classLoaderModelBuilder.containing(url);
     }
@@ -292,7 +295,9 @@ public class BundlePluginDependenciesResolver implements PluginDependenciesResol
         .exportingPackages(originalClassLoaderModel.getExportedPackages())
         .exportingPrivilegedPackages(originalClassLoaderModel.getPrivilegedExportedPackages(),
                                      originalClassLoaderModel.getPrivilegedArtifacts())
-        .exportingResources(originalClassLoaderModel.getExportedResources());
+        .exportingResources(originalClassLoaderModel.getExportedResources())
+        .withLocalPackages(originalClassLoaderModel.getLocalPackages())
+        .withLocalResources(originalClassLoaderModel.getLocalResources());
     for (URL url : originalClassLoaderModel.getUrls()) {
       classLoaderModelBuilder.containing(url);
     }

@@ -6,41 +6,6 @@
  */
 package org.mule.runtime.module.deployment.impl.internal.maven;
 
-import org.mule.maven.client.api.MavenClient;
-import org.mule.maven.client.api.MavenReactorResolver;
-import org.mule.runtime.api.deployment.meta.MuleArtifactLoaderDescriptor;
-import org.mule.runtime.api.exception.MuleRuntimeException;
-import org.mule.runtime.core.api.config.bootstrap.ArtifactType;
-import org.mule.runtime.deployment.model.api.artifact.ArtifactDescriptorConstants;
-import org.mule.runtime.module.artifact.api.descriptor.ArtifactDescriptorCreateException;
-import org.mule.runtime.module.artifact.api.descriptor.BundleDependency;
-import org.mule.runtime.module.artifact.api.descriptor.BundleDescriptor;
-import org.mule.runtime.module.artifact.api.descriptor.BundleScope;
-import org.mule.runtime.module.artifact.api.descriptor.ClassLoaderModel;
-import org.mule.runtime.module.artifact.api.descriptor.ClassLoaderModelLoader;
-import org.mule.runtime.module.artifact.api.descriptor.InvalidDescriptorLoaderException;
-import org.mule.tools.api.classloader.model.Artifact;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static com.google.common.io.Files.createTempDir;
 import static java.lang.Boolean.valueOf;
 import static java.lang.String.format;
@@ -65,8 +30,6 @@ import static org.mule.runtime.deployment.model.api.plugin.ArtifactPluginDescrip
 import static org.mule.runtime.module.artifact.api.descriptor.ArtifactConstants.API_CLASSIFIERS;
 import static org.mule.tools.api.classloader.ClassLoaderModelJsonSerializer.deserialize;
 
-<<<<<<< HEAD
-=======
 import org.mule.maven.client.api.MavenClient;
 import org.mule.maven.client.api.MavenReactorResolver;
 import org.mule.runtime.api.deployment.meta.MuleArtifactLoaderDescriptor;
@@ -90,7 +53,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -99,11 +64,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
->>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
 /**
  * Abstract implementation of {@link ClassLoaderModelLoader} that resolves the dependencies for all the mule artifacts and create
  * the {@link ClassLoaderModel}. It lets the implementations of this class to add artifact's specific class loader URLs
@@ -121,16 +86,11 @@ public abstract class AbstractMavenClassLoaderModelLoader implements ClassLoader
 
   public static final String CLASSLOADER_MODEL_MAVEN_REACTOR_RESOLVER = "_classLoaderModelMavenReactorResolver";
 
-<<<<<<< HEAD
   private static final String POM_LOCATION_FORMAT = "%s/%s-%s.pom";
 
-  protected final Logger logger = LoggerFactory.getLogger(this.getClass());
-  private MavenClient mavenClient;
-=======
   protected final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
-  protected MavenClient mavenClient;
+  private final MavenClient mavenClient;
   private final Supplier<JarExplorer> jarExplorerFactory;
->>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
 
   public AbstractMavenClassLoaderModelLoader(MavenClient mavenClient) {
     this(mavenClient, () -> new FileJarExplorer());
@@ -323,17 +283,30 @@ public abstract class AbstractMavenClassLoaderModelLoader implements ClassLoader
       final LightweightClassLoaderModelBuilder classLoaderModelBuilder =
           newLightweightClassLoaderModelBuilder(artifactFile, (BundleDescriptor) attributes.get(BundleDescriptor.class.getName()),
                                                 mavenClient, attributes, nonProvidedDependencies);
+
+      final Set<String> exportedPackages = new HashSet<>(getAttribute(attributes, EXPORTED_PACKAGES));
+      final Set<String> exportedResources = new HashSet<>(getAttribute(attributes, EXPORTED_RESOURCES));
+
       classLoaderModelBuilder
-          .exportingPackages(new HashSet<>(getAttribute(attributes, EXPORTED_PACKAGES)))
+          .exportingPackages(exportedPackages)
+          .exportingResources(exportedResources)
           .exportingPrivilegedPackages(new HashSet<>(getAttribute(attributes, PRIVILEGED_EXPORTED_PACKAGES)),
                                        new HashSet<>(getAttribute(attributes, PRIVILEGED_ARTIFACTS_IDS)))
-          .exportingResources(new HashSet<>(getAttribute(attributes, EXPORTED_RESOURCES)))
           .includeTestDependencies(valueOf(getSimpleAttribute(attributes, INCLUDE_TEST_DEPENDENCIES, "false")));
       Set<BundleDependency> missingApiDependencyBundles = findMissingApiDependencies(dependencies, attributes,
                                                                                      includeProvidedDependencies, mavenRepository,
                                                                                      mavenReactorResolver, temporaryDirectory);
-      loadUrls(artifactFile, classLoaderModelBuilder, concat(nonProvidedDependencies.stream(),
-                                                             missingApiDependencyBundles.stream()).collect(toSet()));
+
+      // This is already filtering out mule-plugin dependencies,
+      // since for this case we explicitly need to consume the exported API from the plugin.
+      final List<URL> dependenciesArtifactsUrls =
+          loadUrls(artifactFile, classLoaderModelBuilder, concat(nonProvidedDependencies.stream(),
+                                                                 missingApiDependencyBundles.stream()).collect(toSet()));
+
+      // TODO MULE-17114 retrieve this data from the json if present, if not then call this
+      populateLocalPackages(artifactFile, classLoaderModelBuilder, dependenciesArtifactsUrls, exportedPackages,
+                            exportedResources);
+
       Stream<BundleDependency> allBundleDependencies = dependencies.stream().map(dependencyConverter::convert);
       classLoaderModelBuilder.dependingOn(concat(allBundleDependencies,
                                                  missingApiDependencyBundles.stream()).collect(toSet()));
@@ -343,44 +316,6 @@ public abstract class AbstractMavenClassLoaderModelLoader implements ClassLoader
     }
   }
 
-<<<<<<< HEAD
-=======
-  protected ClassLoaderModel createLightPackageClassLoaderModel(File artifactFile,
-                                                                Map<String, Object> attributes,
-                                                                ArtifactType artifactType) {
-
-    Set<BundleDependency> resolvedDependencies = resolveArtifactDependencies(artifactFile, attributes, artifactType);
-
-    Set<BundleDependency> nonProvidedDependencies =
-        resolvedDependencies.stream().filter(dep -> !PROVIDED.equals(dep.getScope())).collect(Collectors.toSet());
-
-    final LightweightClassLoaderModelBuilder classLoaderModelBuilder =
-        newLightweightClassLoaderModelBuilder(artifactFile, (BundleDescriptor) attributes.get(BundleDescriptor.class.getName()),
-                                              mavenClient, attributes, nonProvidedDependencies);
-
-    final Set<String> exportedPackages = new HashSet<>(getAttribute(attributes, EXPORTED_PACKAGES));
-    final Set<String> exportedResources = new HashSet<>(getAttribute(attributes, EXPORTED_RESOURCES));
-
-    classLoaderModelBuilder
-        .exportingPackages(exportedPackages)
-        .exportingResources(exportedResources)
-        .exportingPrivilegedPackages(new HashSet<>(getAttribute(attributes, PRIVILEGED_EXPORTED_PACKAGES)),
-                                     new HashSet<>(getAttribute(attributes, PRIVILEGED_ARTIFACTS_IDS)))
-        .includeTestDependencies(valueOf(getSimpleAttribute(attributes, INCLUDE_TEST_DEPENDENCIES, "false")));
-
-    // This is already filtering out mule-plugin dependencies,
-    // since for this case we explicitly need to consume the exported API from the plugin.
-    final List<URL> dependenciesArtifactsUrls = loadUrls(artifactFile, classLoaderModelBuilder, nonProvidedDependencies);
-
-    // TODO MULE-17114 retrieve this data from the json if present, if not then call this
-    populateLocalPackages(artifactFile, classLoaderModelBuilder, dependenciesArtifactsUrls, exportedPackages, exportedResources);
-
-    classLoaderModelBuilder.dependingOn(resolvedDependencies);
-
-    return classLoaderModelBuilder.build();
-  }
-
->>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
   protected abstract LightweightClassLoaderModelBuilder newLightweightClassLoaderModelBuilder(File artifactFile,
                                                                                               BundleDescriptor bundleDescriptor,
                                                                                               MavenClient mavenClient,
@@ -392,7 +327,6 @@ public abstract class AbstractMavenClassLoaderModelLoader implements ClassLoader
                                                                                               org.mule.tools.api.classloader.model.ClassLoaderModel packagerClassLoaderModel,
                                                                                               Map<String, Object> attributes);
 
-<<<<<<< HEAD
   // TODO: MULE-15577 - Review plugin and API definition resolution
   private Set<BundleDependency> findMissingApiDependencies(List<org.mule.maven.client.api.model.BundleDependency> dependencies,
                                                            Map<String, Object> attributes,
@@ -436,7 +370,8 @@ public abstract class AbstractMavenClassLoaderModelLoader implements ClassLoader
                                       org.mule.maven.client.api.model.BundleDependency dependency) {
     return dependencies.stream()
         .noneMatch(currentApiArtifact -> currentApiArtifact.getDescriptor().equals(dependency.getDescriptor()));
-=======
+  }
+
   protected void populateLocalPackages(File artifactFile, final ArtifactClassLoaderModelBuilder classLoaderModelBuilder,
                                        List<URL> dependenciesArtifactsUrls,
                                        Set<String> exportedPackages, Set<String> exportedResources) {
@@ -459,12 +394,9 @@ public abstract class AbstractMavenClassLoaderModelLoader implements ClassLoader
       classLoaderModelBuilder.withLocalPackages(localPackages);
       classLoaderModelBuilder.withLocalResources(localResources);
     }
->>>>>>> 9bbcadd MULE-17112: Internal libraries of a plugin are overridden by a sharedLib fron an app (#8029)
   }
 
   protected abstract boolean includeProvidedDependencies(ArtifactType artifactType);
-
-
 
   /**
    * Loads the URLs of the class loader for this artifact.
