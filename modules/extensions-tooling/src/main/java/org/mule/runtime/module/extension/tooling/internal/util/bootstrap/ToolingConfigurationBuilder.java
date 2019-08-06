@@ -13,8 +13,7 @@ import org.mule.runtime.core.privileged.registry.RegistrationException;
 public class ToolingConfigurationBuilder extends DefaultsConfigurationBuilder {
 
   @Override
-  protected void registerExecutionComponents(MuleContext muleContext) throws RegistrationException {
-  }
+  protected void registerExecutionComponents(MuleContext muleContext) throws RegistrationException {}
 
   //@Override
   //protected void registerMELExpressionLanguage(MuleContext muleContext) throws RegistrationException {

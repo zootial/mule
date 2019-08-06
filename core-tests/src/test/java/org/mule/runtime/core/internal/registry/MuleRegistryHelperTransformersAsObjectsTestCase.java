@@ -10,6 +10,7 @@ package org.mule.runtime.core.internal.registry;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 import org.mule.runtime.api.metadata.DataType;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.transformer.Converter;
@@ -42,7 +43,7 @@ public class MuleRegistryHelperTransformersAsObjectsTestCase extends AbstractMul
     muleRegistryHelper.registerObject("mockTransformerResolver", transformerResolver);
 
     muleRegistryHelper.registerObject("StringToAppleConverter", stringToApple);
-    muleRegistryHelper.registerObject("AppleToStringConverter", appleToString, appleToString.getClass());
+    muleRegistryHelper.registerObject("AppleToStringConverter", appleToString);
   }
 
   @Test
