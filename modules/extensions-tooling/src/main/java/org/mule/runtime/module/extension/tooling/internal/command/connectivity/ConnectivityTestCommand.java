@@ -26,7 +26,6 @@ import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSet;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ResolverSetResult;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ValueResolvingContext;
 import org.mule.runtime.module.extension.internal.util.ReflectionCache;
-import org.mule.runtime.module.extension.tooling.internal.ToolingExpressionManager;
 import org.mule.runtime.module.extension.tooling.internal.command.SdkToolingCommand;
 import org.mule.runtime.module.extension.tooling.internal.command.SdkToolingContext;
 import org.mule.runtime.module.extension.tooling.internal.connectivity.ToolingConnectionProviderBuilder;
@@ -65,8 +64,8 @@ public class ConnectivityTestCommand implements SdkToolingCommand<ConnectionVali
   }
 
   private ConnectionProvider<Object> createConnectionProvider(SdkToolingContext context) throws Exception {
-    final ExpressionManager expressionManager = new ToolingExpressionManager();
     final MuleContext muleContext = context.getMuleContext();
+    final ExpressionManager expressionManager = muleContext.getExpressionManager();
 
     ResolverSet resolverSet = toResolverSet(context.getParameters(),
                                             connectionProviderModel,

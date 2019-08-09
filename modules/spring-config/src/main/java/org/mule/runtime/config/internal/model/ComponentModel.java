@@ -14,6 +14,7 @@ import static org.mule.runtime.api.util.Preconditions.checkState;
 
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
+import org.mule.runtime.api.meta.model.ExtensionModel;
 import org.mule.runtime.api.meta.model.config.ConfigurationModel;
 import org.mule.runtime.api.meta.model.connection.ConnectionProviderModel;
 import org.mule.runtime.ast.api.ComponentAst;
@@ -73,7 +74,12 @@ public abstract class ComponentModel {
   private Object objectInstance;
   private Class<?> type;
   private boolean enabled = true;
+  private ExtensionModel extensionModel;
 
+
+  public ExtensionModel getExtensionModel() {
+    return extensionModel;
+  }
 
   /**
    * @return the line number in which the component was defined in the configuration file. It may be empty if the component was
@@ -212,15 +218,18 @@ public abstract class ComponentModel {
     return empty();
   }
 
-  public void setComponentModel(org.mule.runtime.api.meta.model.ComponentModel model) {
+  public void setComponentModel(ExtensionModel extensionModel, org.mule.runtime.api.meta.model.ComponentModel model) {
+    this.extensionModel = extensionModel;
     this.componentModel = model;
   }
 
-  public void setConfigurationModel(ConfigurationModel model) {
+  public void setConfigurationModel(ExtensionModel extensionModel, ConfigurationModel model) {
+    this.extensionModel = extensionModel;
     this.configurationModel = model;
   }
 
-  public void setConnectionProviderModel(ConnectionProviderModel connectionProviderModel) {
+  public void setConnectionProviderModel(ExtensionModel extensionModel, ConnectionProviderModel connectionProviderModel) {
+    this.extensionModel = extensionModel;
     this.connectionProviderModel = connectionProviderModel;
   }
 

@@ -8,6 +8,7 @@ package org.mule.runtime.module.extension.tooling.internal;
 
 import static java.lang.System.clearProperty;
 import static java.lang.System.setProperty;
+import static java.util.Collections.emptyList;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.mule.runtime.core.api.config.MuleDeploymentProperties.MULE_LAZY_INIT_DEPLOYMENT_PROPERTY;
 import static org.mule.runtime.core.api.config.MuleDeploymentProperties.MULE_LAZY_INIT_ENABLE_XML_VALIDATIONS_DEPLOYMENT_PROPERTY;
@@ -19,6 +20,7 @@ import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.meta.model.ExtensionModel;
 import org.mule.runtime.api.meta.model.connection.ConnectionProviderModel;
+import org.mule.runtime.api.service.Service;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.module.extension.tooling.api.SdkToolingExecutor;
 import org.mule.runtime.module.extension.tooling.internal.command.SdkToolingCommand;
@@ -26,11 +28,21 @@ import org.mule.runtime.module.extension.tooling.internal.command.SdkToolingCont
 import org.mule.runtime.module.extension.tooling.internal.command.connectivity.ConnectivityTestCommand;
 import org.mule.runtime.module.extension.tooling.internal.util.bootstrap.ToolingMuleContextFactory;
 
+import java.util.List;
 import java.util.Map;
 
 public class DefaultSdkToolingExecutor implements SdkToolingExecutor {
 
   private final ToolingMuleContextFactory factory = new ToolingMuleContextFactory();
+  private final List<Service> services;
+
+  public DefaultSdkToolingExecutor(List<Service> services) {
+    this.services = services;
+  }
+
+  public DefaultSdkToolingExecutor() {
+    this(emptyList());
+  }
 
   @Override
   public ConnectionValidationResult testConnectivity(ExtensionModel extensionModel,
@@ -70,7 +82,7 @@ public class DefaultSdkToolingExecutor implements SdkToolingExecutor {
 
   private MuleContext createMuleContext() {
     try {
-      return factory.createMuleContext();
+      return factory.createMuleContext(services);
     } catch (MuleException e) {
       throw new MuleRuntimeException(createStaticMessage("Could not create tooling mule context"), e);
     }

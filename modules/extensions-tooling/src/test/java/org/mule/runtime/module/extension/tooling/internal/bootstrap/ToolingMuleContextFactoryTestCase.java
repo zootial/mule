@@ -16,6 +16,8 @@ import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.module.extension.tooling.internal.util.bootstrap.ToolingMuleContextFactory;
 import org.mule.tck.junit4.AbstractMuleTestCase;
 
+import java.util.Collections;
+
 import org.junit.Test;
 
 public class ToolingMuleContextFactoryTestCase extends AbstractMuleTestCase {
@@ -24,7 +26,7 @@ public class ToolingMuleContextFactoryTestCase extends AbstractMuleTestCase {
 
   @Test
   public void createMuleContext() throws Exception {
-    MuleContext muleContext = factory.createMuleContext(true);
+    MuleContext muleContext = factory.createMuleContext(true, Collections.emptyList());
 
     assertThat(muleContext.isInitialised(), is(true));
     assertThat(muleContext.isStarted(), is(true));

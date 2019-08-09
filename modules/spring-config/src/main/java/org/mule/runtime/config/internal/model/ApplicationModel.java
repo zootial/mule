@@ -107,10 +107,9 @@ import java.util.stream.Stream;
 
 import javax.xml.namespace.QName;
 
-import org.slf4j.Logger;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.slf4j.Logger;
 
 /**
  * An {@code ApplicationModel} holds a representation of all the artifact configuration using an abstract model to represent any
@@ -381,14 +380,19 @@ public class ApplicationModel implements ArtifactAst {
               .build());
 
       extensionModelHelper.findComponentModel(componentModel.getIdentifier())
-          .ifPresent(componentModel::setComponentModel);
+          .ifPresent(model -> componentModel
+              .setComponentModel(extensionModelHelper.lookupExtensionModelFor(componentModel.getIdentifier()).get(), model));
       if (!componentModel.getModel(HasStereotypeModel.class).isPresent()) {
         extensionModelHelper.findConfigurationModel(componentModel.getIdentifier())
-            .ifPresent(componentModel::setConfigurationModel);
+            .ifPresent(model -> componentModel
+                .setConfigurationModel(extensionModelHelper.lookupExtensionModelFor(componentModel.getIdentifier()).get(),
+                                       model));
       }
       if (!componentModel.getModel(HasStereotypeModel.class).isPresent()) {
         extensionModelHelper.findConnectionProviderModel(componentModel.getIdentifier())
-            .ifPresent(componentModel::setConnectionProviderModel);
+            .ifPresent(model -> componentModel
+                .setConnectionProviderModel(extensionModelHelper.lookupExtensionModelFor(componentModel.getIdentifier()).get(),
+                                            model));
       }
       if (!componentModel.getModel(HasStereotypeModel.class).isPresent()) {
         extensionModelHelper.findMetadataType(componentModel.getType())

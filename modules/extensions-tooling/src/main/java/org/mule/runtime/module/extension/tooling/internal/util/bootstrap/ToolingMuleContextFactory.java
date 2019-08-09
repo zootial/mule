@@ -7,9 +7,10 @@
 package org.mule.runtime.module.extension.tooling.internal.util.bootstrap;
 
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_EXTENSION_MANAGER;
+import static org.mule.runtime.core.api.util.StringUtils.isEmpty;
 
+import org.mule.runtime.api.config.custom.CustomizationService;
 import org.mule.runtime.api.exception.MuleException;
-import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.scheduler.SchedulerService;
 import org.mule.runtime.api.service.Service;
 import org.mule.runtime.core.api.MuleContext;
@@ -18,20 +19,19 @@ import org.mule.runtime.core.api.config.builders.AbstractConfigurationBuilder;
 import org.mule.runtime.core.api.context.DefaultMuleContextFactory;
 import org.mule.runtime.core.api.extension.ExtensionManager;
 import org.mule.runtime.core.internal.context.DefaultMuleContext;
-import org.mule.runtime.core.internal.context.MuleContextWithRegistry;
-import org.mule.runtime.core.internal.registry.MuleRegistry;
-import org.mule.runtime.core.privileged.registry.RegistrationException;
 import org.mule.runtime.module.extension.internal.manager.DefaultExtensionManager;
 import org.mule.runtime.module.extension.tooling.internal.service.scheduler.ToolingSchedulerService;
 
+import java.util.List;
+
 public class ToolingMuleContextFactory {
 
-  public MuleContext createMuleContext() throws MuleException {
-    return createMuleContext(true);
+  public MuleContext createMuleContext(List<Service> services) throws MuleException {
+    return createMuleContext(true, services);
   }
 
-  public MuleContext createMuleContext(boolean start) throws MuleException {
-    MuleContext muleContext = new DefaultMuleContextFactory().createMuleContext(getConfigurationBuilders());
+  public MuleContext createMuleContext(boolean start, List<Service> services) throws MuleException {
+    MuleContext muleContext = new DefaultMuleContextFactory().createMuleContext(getConfigurationBuilders(services));
 
     if (start) {
       muleContext.start();
@@ -40,10 +40,10 @@ public class ToolingMuleContextFactory {
     return muleContext;
   }
 
-  private ConfigurationBuilder[] getConfigurationBuilders() {
+  private ConfigurationBuilder[] getConfigurationBuilders(List<Service> services) {
     return new ConfigurationBuilder[] {
         new ToolingConfigurationBuilder(),
-        getServicesConfigurationBuilder(),
+        getServicesConfigurationBuilder(services),
         getExtensionManagerConfigurationBuilder()
     };
   }
@@ -61,24 +61,30 @@ public class ToolingMuleContextFactory {
     };
   }
 
-  private ConfigurationBuilder getServicesConfigurationBuilder() {
+  private ConfigurationBuilder getServicesConfigurationBuilder(List<Service> services) {
     return new AbstractConfigurationBuilder() {
 
       @Override
       protected void doConfigure(MuleContext muleContext) {
-        MuleRegistry registry = ((MuleContextWithRegistry) muleContext).getRegistry();
+        CustomizationService customizationService = muleContext.getCustomizationService();
+
         SchedulerService schedulerService = new ToolingSchedulerService();
-        try {
-          registry.registerObject(getServiceId(SchedulerService.class, schedulerService), schedulerService);
-        } catch (RegistrationException e) {
-          throw new MuleRuntimeException(e);
-        }
+        customizationService.registerCustomServiceImpl(getServiceId(schedulerService), schedulerService);
+
+        services.stream()
+            .filter(service -> !service.getContractName().equals(schedulerService.getContractName()))
+            .forEach(service -> customizationService.registerCustomServiceImpl(getServiceId(service), service));
       }
     };
   }
 
-  private <T extends Service> String getServiceId(Class<T> contractClass, T service) {
-    return service.getName() + "-" + contractClass.getSimpleName();
+  private <T extends Service> String getServiceId(T service) {
+    String name = service.getName();
+    String contract = service.getContractName();
+    if (!isEmpty(contract)) {
+      name += " - " + contract;
+    }
+    return name;
   }
 
 }
