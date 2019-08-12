@@ -144,7 +144,7 @@ public class MultiConsumerJmsMessageReceiver extends AbstractMessageReceiver
         }
         reconnecting = true;
 
-        logger.warn("Clearing isHandlingException from MultiConsumerJmsMessageReceiver#doConnect");
+        logger.debug("Clearing isHandlingException from MultiConsumerJmsMessageReceiver#doConnect");
         jmsConnector.setIsHandlingException(false);
 
         reconnectWorkManager.startIfNotStarted();
@@ -253,6 +253,7 @@ public class MultiConsumerJmsMessageReceiver extends AbstractMessageReceiver
         private volatile MessageConsumer consumer;
 
         protected volatile boolean connected;
+        protected volatile boolean consumerClosed = false;
         protected volatile boolean started;
         protected volatile boolean isProcessingMessage;
 
@@ -285,6 +286,7 @@ public class MultiConsumerJmsMessageReceiver extends AbstractMessageReceiver
         {
             jmsConnector.closeQuietly(consumer);
             consumer = null;
+            consumerClosed = true;
             if (isProcessingMessage)
             {
                 recoverSession();
@@ -309,7 +311,7 @@ public class MultiConsumerJmsMessageReceiver extends AbstractMessageReceiver
         protected void doStart() throws MuleException
         {
             subLogger.debug("SUB doStart()");
-            if (!connected)
+            if (!connected || consumerClosed)
             {
                 doConnect();
             }
@@ -343,7 +345,7 @@ public class MultiConsumerJmsMessageReceiver extends AbstractMessageReceiver
                 try
                 {
                     consumer.close();
-                    started = false;
+                    consumerClosed = true;
                 }
                 catch (JMSException e)
                 {
@@ -421,6 +423,7 @@ public class MultiConsumerJmsMessageReceiver extends AbstractMessageReceiver
                     // Create consumer
                     consumer = jmsSupport.createConsumer(session, dest, selector, jmsConnector.isNoLocal(), durableName,
                                                          topic, endpoint);
+                    consumerClosed = false;
                 }
                 catch (Exception e)
                 {
