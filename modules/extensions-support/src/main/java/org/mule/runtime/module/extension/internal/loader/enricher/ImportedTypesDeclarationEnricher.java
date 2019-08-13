@@ -11,13 +11,18 @@ import static java.util.stream.Collectors.toList;
 import static org.mule.runtime.extension.api.loader.DeclarationEnricherPhase.INITIALIZE;
 import static org.mule.runtime.module.extension.internal.loader.java.MuleExtensionAnnotationParser.parseRepeatableAnnotation;
 
+import org.mule.metadata.api.model.ArrayType;
+import org.mule.metadata.api.model.IntersectionType;
 import org.mule.metadata.api.model.MetadataType;
 import org.mule.metadata.api.model.ObjectType;
+import org.mule.metadata.api.model.UnionType;
+import org.mule.metadata.api.visitor.MetadataTypeVisitor;
 import org.mule.runtime.api.meta.model.ImportedTypeModel;
 import org.mule.runtime.api.meta.model.declaration.fluent.ExtensionDeclaration;
 import org.mule.runtime.api.meta.model.declaration.fluent.ExtensionDeclarer;
 import org.mule.runtime.extension.api.annotation.Import;
 import org.mule.runtime.extension.api.annotation.ImportedTypes;
+import org.mule.runtime.extension.api.declaration.type.annotation.InfrastructureTypeAnnotation;
 import org.mule.runtime.extension.api.exception.IllegalModelDefinitionException;
 import org.mule.runtime.extension.api.loader.DeclarationEnricherPhase;
 import org.mule.runtime.extension.api.loader.ExtensionLoadingContext;
@@ -25,6 +30,7 @@ import org.mule.runtime.module.extension.api.loader.java.type.AnnotationValueFet
 import org.mule.runtime.module.extension.api.loader.java.type.Type;
 import org.mule.runtime.module.extension.internal.loader.java.type.property.ExtensionTypeDescriptorModelProperty;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,8 +80,37 @@ public final class ImportedTypesDeclarationEnricher extends AbstractAnnotatedDec
                                                     type.getTypeName()));
         }
 
-        extensionDeclaration
-            .addImportedType(new ImportedTypeModel((ObjectType) importedType));
+        importedType.accept(new MetadataTypeVisitor() {
+
+          // This is created to avoid a recursive types infinite loop, producing an StackOverflow when resolving the stereotypes.
+          private final List<MetadataType> registeredTypes = new LinkedList<>();
+
+          @Override
+          public void visitObject(ObjectType objectType) {
+            if (!registeredTypes.contains(objectType)
+                && !objectType.getAnnotation(InfrastructureTypeAnnotation.class).isPresent()) {
+              registeredTypes.add(objectType);
+              extensionDeclaration
+                  .addImportedType(new ImportedTypeModel(objectType));
+              objectType.getFields().forEach(f -> f.getValue().accept(this));
+            }
+          }
+
+          @Override
+          public void visitArrayType(ArrayType arrayType) {
+            arrayType.getType().accept(this);
+          }
+
+          @Override
+          public void visitUnion(UnionType unionType) {
+            unionType.getTypes().forEach(t -> t.accept(this));
+          }
+
+          @Override
+          public void visitIntersection(IntersectionType intersectionType) {
+            intersectionType.getTypes().forEach(t -> t.accept(this));
+          }
+        });
       });
     }
   }
