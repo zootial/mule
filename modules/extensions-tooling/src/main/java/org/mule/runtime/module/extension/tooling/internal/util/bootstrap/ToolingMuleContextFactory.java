@@ -9,8 +9,8 @@ package org.mule.runtime.module.extension.tooling.internal.util.bootstrap;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_EXTENSION_MANAGER;
 import static org.mule.runtime.core.api.util.StringUtils.isEmpty;
 
-import org.mule.runtime.api.config.custom.CustomizationService;
 import org.mule.runtime.api.exception.MuleException;
+import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.scheduler.SchedulerService;
 import org.mule.runtime.api.service.Service;
 import org.mule.runtime.core.api.MuleContext;
@@ -19,6 +19,9 @@ import org.mule.runtime.core.api.config.builders.AbstractConfigurationBuilder;
 import org.mule.runtime.core.api.context.DefaultMuleContextFactory;
 import org.mule.runtime.core.api.extension.ExtensionManager;
 import org.mule.runtime.core.internal.context.DefaultMuleContext;
+import org.mule.runtime.core.internal.context.MuleContextWithRegistry;
+import org.mule.runtime.core.internal.registry.MuleRegistry;
+import org.mule.runtime.core.privileged.registry.RegistrationException;
 import org.mule.runtime.module.extension.internal.manager.DefaultExtensionManager;
 import org.mule.runtime.module.extension.tooling.internal.service.scheduler.ToolingSchedulerService;
 
@@ -66,14 +69,18 @@ public class ToolingMuleContextFactory {
 
       @Override
       protected void doConfigure(MuleContext muleContext) {
-        CustomizationService customizationService = muleContext.getCustomizationService();
-
+        MuleRegistry registry = ((MuleContextWithRegistry) muleContext).getRegistry();
         SchedulerService schedulerService = new ToolingSchedulerService();
-        customizationService.registerCustomServiceImpl(getServiceId(schedulerService), schedulerService);
+        registerObject(registry, schedulerService);
+        services.stream().forEach(service -> registerObject(registry, service));
+      }
 
-        services.stream()
-            .filter(service -> !service.getContractName().equals(schedulerService.getContractName()))
-            .forEach(service -> customizationService.registerCustomServiceImpl(getServiceId(service), service));
+      private void registerObject(MuleRegistry registry, Service service) {
+        try {
+          registry.registerObject(getServiceId(service), service);
+        } catch (RegistrationException e) {
+          throw new MuleRuntimeException(e);
+        }
       }
     };
   }
