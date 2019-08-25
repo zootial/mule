@@ -144,7 +144,7 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
   private final XmlConfigurationDocumentLoader xmlConfigurationDocumentLoader;
   private final Optional<ConfigurationProperties> parentConfigurationProperties;
   private final DefaultRegistry serviceDiscoverer;
-  private final ConfigurationDependencyResolver configurationDependencyResolver;
+  private ConfigurationDependencyResolver configurationDependencyResolver;
   private final DefaultResourceLocator resourceLocator;
   protected ApplicationModel applicationModel;
   protected MuleContextWithRegistry muleContext;
@@ -192,6 +192,8 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
          parentConfigurationProperties, artifactProperties,
          artifactType, pluginsClassLoaders, disableXmlValidations,
          runtimeComponentBuildingDefinitionProvider);
+
+    initialize(muleContext);
   }
 
   public MuleArtifactContext(MuleContext muleContext, ConfigResource[] artifactConfigResources,
@@ -229,8 +231,14 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
         new BeanDefinitionFactory(componentBuildingDefinitionRegistry, muleContext.getErrorTypeRepository());
 
     createApplicationModel();
-    validateAllConfigElementHaveParsers();
+  }
 
+  public void initialize(MuleContext muleContext) {
+    Set<ExtensionModel> extensions =
+        muleContext.getExtensionManager() != null ? muleContext.getExtensionManager().getExtensions() : emptySet();
+    applicationModel.macroExpandXmlSdkComponents(extensions);
+
+    validateAllConfigElementHaveParsers();
     this.configurationDependencyResolver =
         new ConfigurationDependencyResolver(applicationModel, componentBuildingDefinitionRegistry);
   }
@@ -307,7 +315,7 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
       applicationModel = new ApplicationModel(artifactConfig, artifactDeclaration, extensions,
                                               artifactProperties, parentConfigurationProperties,
                                               of(componentBuildingDefinitionRegistry),
-                                              true, externalResourceProvider);
+                                              externalResourceProvider);
     } catch (MuleRuntimeException e) {
       throw e;
     } catch (Exception e) {

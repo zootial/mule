@@ -463,7 +463,7 @@ public class ModelBasedTypeMetadataCacheKeyGeneratorTestCase extends AbstractDsl
   protected ApplicationModel loadApplicationModel(ArtifactDeclaration declaration) throws Exception {
     return new ApplicationModel(new ArtifactConfig.Builder().build(),
                                 declaration, extensions, Collections.emptyMap(), Optional.empty(), Optional.empty(),
-                                false, uri -> getClass().getResourceAsStream(uri));
+                                uri -> getClass().getResourceAsStream(uri));
   }
 
   private MetadataCacheIdGenerator<ComponentAst> createGenerator(ApplicationModel app) {

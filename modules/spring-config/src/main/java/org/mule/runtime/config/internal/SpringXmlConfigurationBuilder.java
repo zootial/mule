@@ -172,12 +172,17 @@ public class SpringXmlConfigurationBuilder extends AbstractResourceConfiguration
                                          resolveComponentModelInitializer(),
                                          resolveParentConfigurationProperties(), disableXmlValidations,
                                          runtimeComponentBuildingDefinitionsProvider);
+      
+      // TODO call ctx.initialize here? check data sense, munit with smart connectors, etc..
     }
 
-    return new MuleArtifactContext(muleContext, resolveArtifactConfigResources(), artifactDeclaration, optionalObjectsController,
-                                   getArtifactProperties(), artifactType, resolveContextArtifactPluginClassLoaders(),
-                                   resolveParentConfigurationProperties(), disableXmlValidations,
-                                   runtimeComponentBuildingDefinitionsProvider);
+    final MuleArtifactContext ctx =
+        new MuleArtifactContext(muleContext, resolveArtifactConfigResources(), artifactDeclaration, optionalObjectsController,
+                                getArtifactProperties(), artifactType, resolveContextArtifactPluginClassLoaders(),
+                                resolveParentConfigurationProperties(), disableXmlValidations,
+                                runtimeComponentBuildingDefinitionsProvider);
+    ctx.initialize(muleContext);
+    return ctx;
   }
 
   private ConfigResource[] resolveArtifactConfigResources() {
