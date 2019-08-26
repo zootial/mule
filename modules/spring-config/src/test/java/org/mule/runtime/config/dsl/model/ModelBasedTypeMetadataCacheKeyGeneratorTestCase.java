@@ -6,6 +6,8 @@
  */
 package org.mule.runtime.config.dsl.model;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Optional.empty;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -31,7 +33,6 @@ import org.mule.runtime.core.internal.metadata.cache.MetadataCacheId;
 import org.mule.runtime.core.internal.metadata.cache.MetadataCacheIdGenerator;
 import org.mule.runtime.core.internal.metadata.cache.MetadataCacheIdGeneratorFactory;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -462,8 +463,8 @@ public class ModelBasedTypeMetadataCacheKeyGeneratorTestCase extends AbstractDsl
 
   protected ApplicationModel loadApplicationModel(ArtifactDeclaration declaration) throws Exception {
     return new ApplicationModel(new ArtifactConfig.Builder().build(),
-                                declaration, extensions, Collections.emptyMap(), Optional.empty(), Optional.empty(),
-                                false, uri -> getClass().getResourceAsStream(uri));
+                                declaration, extensions, emptyMap(), empty(), empty(),
+                                uri -> getClass().getResourceAsStream(uri));
   }
 
   private MetadataCacheIdGenerator<ComponentAst> createGenerator(ApplicationModel app) {
