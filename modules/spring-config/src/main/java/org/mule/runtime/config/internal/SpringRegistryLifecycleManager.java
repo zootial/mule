@@ -149,7 +149,7 @@ public class SpringRegistryLifecycleManager extends RegistryLifecycleManager {
     public SpringContextDisposePhase() {
       super();
       setIgnoredObjectTypes(new Class[] {Component.class, MessageSource.class, InterceptingMessageProcessor.class,
-          OutboundRouter.class, MuleContext.class, ServerNotificationManager.class, Service.class});
+          OutboundRouter.class, MuleContext.class, ServerNotificationManager.class, Service.class, FlowExceptionHandler.class});
     }
 
     @Override
