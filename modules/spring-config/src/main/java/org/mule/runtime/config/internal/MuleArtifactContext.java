@@ -230,7 +230,6 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
         new BeanDefinitionFactory(componentBuildingDefinitionRegistry, muleContext.getErrorTypeRepository());
 
     createApplicationModel();
-    // initialize();
 
     this.configurationDependencyResolver =
         new ConfigurationDependencyResolver(applicationModel, componentBuildingDefinitionRegistry);
@@ -432,7 +431,7 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
   }
 
   /**
-   * Creates te definition for all the objects to be created form the enabled components in the {@code applicationModel}.
+   * Creates the definition for all the objects to be created form the enabled components in the {@code applicationModel}.
    *
    * @param beanFactory the bean factory in which definition must be created.
    * @param applicationModel the artifact application model.
@@ -467,8 +466,8 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
           return;
         }
 
-        if (componentModel.isEnabled()) {
-          if (componentModel.getNameAttribute() != null) {
+        if (componentModel.isEnabled() || alwaysEnabledUnnamedTopLevelComponents.contains(componentModel.getIdentifier())) {
+          if (componentModel.getNameAttribute() != null && componentModel.isRoot()) {
             createdComponentModels.add(componentModel.getNameAttribute());
           }
           beanDefinitionFactory
@@ -476,23 +475,25 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
                                            (resolvedComponentModel, registry) -> {
                                              SpringComponentModel resolvedSpringComponentModel =
                                                  (SpringComponentModel) resolvedComponentModel;
-                                             String nameAttribute = resolvedComponentModel.getNameAttribute();
-                                             if (resolvedComponentModel.getIdentifier().equals(CONFIGURATION_IDENTIFIER)) {
-                                               nameAttribute = OBJECT_MULE_CONFIGURATION;
-                                             } else if (nameAttribute == null) {
-                                               // This may be a configuration that does not requires a name.
-                                               nameAttribute = uniqueValue(resolvedSpringComponentModel.getBeanDefinition()
-                                                   .getBeanClassName());
+                                             if (resolvedComponentModel.isRoot()) {
+                                               String nameAttribute = resolvedComponentModel.getNameAttribute();
+                                               if (resolvedComponentModel.getIdentifier().equals(CONFIGURATION_IDENTIFIER)) {
+                                                 nameAttribute = OBJECT_MULE_CONFIGURATION;
+                                               } else if (nameAttribute == null) {
+                                                 // This may be a configuration that does not requires a name.
+                                                 nameAttribute = uniqueValue(resolvedSpringComponentModel.getBeanDefinition()
+                                                     .getBeanClassName());
 
-                                               if (alwaysEnabledUnnamedTopLevelComponents
-                                                   .contains(resolvedSpringComponentModel.getIdentifier())) {
-                                                 alwaysEnabledGeneratedTopLevelComponentsName.add(nameAttribute);
-                                                 createdComponentModels.add(nameAttribute);
+                                                 if (alwaysEnabledUnnamedTopLevelComponents
+                                                     .contains(resolvedSpringComponentModel.getIdentifier())) {
+                                                   alwaysEnabledGeneratedTopLevelComponentsName.add(nameAttribute);
+                                                   createdComponentModels.add(nameAttribute);
+                                                 }
                                                }
+                                               registry.registerBeanDefinition(nameAttribute,
+                                                                               resolvedSpringComponentModel.getBeanDefinition());
+                                               postProcessBeanDefinition(componentModel, registry, nameAttribute);
                                              }
-                                             registry.registerBeanDefinition(nameAttribute,
-                                                                             resolvedSpringComponentModel.getBeanDefinition());
-                                             postProcessBeanDefinition(componentModel, registry, nameAttribute);
                                            }, null, componentLocator);
 
         } else {
