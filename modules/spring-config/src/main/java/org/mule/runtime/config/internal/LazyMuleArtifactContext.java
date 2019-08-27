@@ -37,7 +37,6 @@ import org.mule.runtime.api.lifecycle.Initialisable;
 import org.mule.runtime.api.lifecycle.InitialisationException;
 import org.mule.runtime.api.lifecycle.Startable;
 import org.mule.runtime.api.metadata.MetadataService;
-import org.mule.runtime.api.util.Reference;
 import org.mule.runtime.api.value.ValueProviderService;
 import org.mule.runtime.app.declaration.api.ArtifactDeclaration;
 import org.mule.runtime.ast.api.ArtifactAst;
@@ -45,6 +44,7 @@ import org.mule.runtime.ast.api.ComponentAst;
 import org.mule.runtime.config.internal.dsl.model.ConfigurationDependencyResolver;
 import org.mule.runtime.config.internal.dsl.model.NoSuchComponentModelException;
 import org.mule.runtime.config.internal.dsl.model.MinimalApplicationModelGenerator;
+import org.mule.runtime.config.internal.dsl.processor.ObjectTypeVisitor;
 import org.mule.runtime.config.internal.model.ComponentModel;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.config.MuleDeploymentProperties;
@@ -61,8 +61,6 @@ import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChainBui
 import org.mule.runtime.core.privileged.registry.RegistrationException;
 import org.mule.runtime.dsl.api.ConfigResource;
 import org.mule.runtime.dsl.api.component.ComponentBuildingDefinitionProvider;
-import org.mule.runtime.dsl.api.component.TypeDefinition;
-import org.mule.runtime.dsl.api.component.TypeDefinitionVisitor;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -74,7 +72,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import org.slf4j.Logger;
@@ -113,7 +110,8 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
    *        org.mule.runtime.config.internal.SpringRegistry
    * @param parentConfigurationProperties
    * @param disableXmlValidations {@code true} when loading XML configs it will not apply validations.
-   * @param runtimeComponentBuildingDefinitionProvider provider for the runtime {@link org.mule.runtime.dsl.api.component.ComponentBuildingDefinition}s
+   * @param runtimeComponentBuildingDefinitionProvider provider for the runtime
+   *        {@link org.mule.runtime.dsl.api.component.ComponentBuildingDefinition}s
    * @since 4.0
    */
   public LazyMuleArtifactContext(MuleContext muleContext, ConfigResource[] artifactConfigResources,
@@ -136,7 +134,6 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
     // By default when a lazy context is created none of its components are enabled...
     this.applicationModel.executeOnEveryMuleComponentTree(componentModel -> componentModel.setEnabled(false));
-    enableMuleObjects();
 
     this.parentComponentModelInitializer = parentComponentModelInitializer;
 
@@ -170,37 +167,6 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
                                                                        new SharedPartitionedPersistentObjectStore<>(new File(sharedPartitionatedPersistentObjectStorePath)));
 
     }
-  }
-
-  /**
-   * Custom logic to only enable those components that should be created when MuleContext is created.
-   * TransactionManagerFactory should be created before a TransactionManager is defined in the configuration.
-   */
-  private void enableMuleObjects() {
-    ConfigurationDependencyResolver dependencyResolver = new ConfigurationDependencyResolver(this.applicationModel,
-                                                                                             componentBuildingDefinitionRegistry);
-    new MinimalApplicationModelGenerator(dependencyResolver, true)
-        .getMinimalModel(componentModel -> {
-          AtomicBoolean transactionFactoryType = new AtomicBoolean(false);
-          TypeDefinitionVisitor visitor = new TypeDefinitionVisitor() {
-
-            @Override
-            public void onType(Class<?> type) {
-              transactionFactoryType.set(TransactionManagerFactory.class.isAssignableFrom(type));
-            }
-
-            @Override
-            public void onConfigurationAttribute(String attributeName, Class<?> enforcedClass) {}
-
-            @Override
-            public void onMapType(TypeDefinition.MapEntryType mapEntryType) {}
-          };
-          return componentBuildingDefinitionRegistry.getBuildingDefinition(componentModel.getIdentifier())
-              .map(componentBuildingDefinition -> {
-                componentBuildingDefinition.getTypeDefinition().visit(visitor);
-                return transactionFactoryType.get();
-              }).orElse(false);
-        });
   }
 
   private static Map<String, String> extendArtifactProperties(Map<String, String> artifactProperties) {
@@ -260,9 +226,8 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
     }
 
     /**
-     * Implementation that handles duplicates.
-     * Whenever a new object is added, then all its dependencies are added as well.
-     * So if one of those dependencies wants to be added again, it's ignored.
+     * Implementation that handles duplicates. Whenever a new object is added, then all its dependencies are added as well. So if
+     * one of those dependencies wants to be added again, it's ignored.
      */
     @Override
     protected int doAddObject(String name, Object object, List<Object> bucket) {
@@ -306,21 +271,20 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
   }
 
   @Override
-  public void initializeComponents(Predicate<org.mule.runtime.config.internal.model.ComponentModel> componentModelPredicate,
+  public void initializeComponents(Predicate<ComponentAst> componentModelPredicate,
                                    boolean applyStartPhase) {
     applyLifecycle(createComponents(of(componentModelPredicate), empty(),
                                     getParentComponentModelInitializerAdapter(applyStartPhase)),
                    applyStartPhase);
   }
 
-  public Optional<ComponentModelInitializerAdapter> getParentComponentModelInitializerAdapter(
-                                                                                              boolean applyStartPhase) {
+  public Optional<ComponentModelInitializerAdapter> getParentComponentModelInitializerAdapter(boolean applyStartPhase) {
     return parentComponentModelInitializer
         .map(componentModelInitializer -> componentModelPredicate -> componentModelInitializer
             .initializeComponents(componentModelPredicate, applyStartPhase));
   }
 
-  private List<Object> createComponents(Optional<Predicate> predicateOptional, Optional<Location> locationOptional,
+  private List<Object> createComponents(Optional<Predicate<ComponentAst>> predicateOptional, Optional<Location> locationOptional,
                                         Optional<ComponentModelInitializerAdapter> parentComponentModelInitializerAdapter) {
     checkState(predicateOptional.isPresent() != locationOptional.isPresent(), "predicate or location has to be passed");
     locationOptional.ifPresent(loc -> {
@@ -343,62 +307,23 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
           new MinimalApplicationModelGenerator(dependencyResolver);
       // Force initialization of configuration component...
       resetMuleConfiguration(minimalApplicationModelGenerator);
+
       // User input components to be initialized...
-      Reference<ArtifactAst> minimalApplicationModel = new Reference<>();
-      predicateOptional
-          .ifPresent(predicate -> minimalApplicationModel.set(minimalApplicationModelGenerator.getMinimalModel(predicate
-              .or(componentModel -> {
-                AtomicBoolean transactionFactoryType = new AtomicBoolean(false);
-                TypeDefinitionVisitor visitor = new TypeDefinitionVisitor() {
-
-                  @Override
-                  public void onType(Class<?> type) {
-                    transactionFactoryType.set(TransactionManagerFactory.class.isAssignableFrom(type));
-                  }
-
-                  @Override
-                  public void onConfigurationAttribute(String attributeName, Class<?> enforcedClass) {}
-
-                  @Override
-                  public void onMapType(TypeDefinition.MapEntryType mapEntryType) {}
-                };
-                return componentBuildingDefinitionRegistry.getBuildingDefinition(((ComponentAst) componentModel).getIdentifier())
-                    .map(componentBuildingDefinition -> {
-                      componentBuildingDefinition.getTypeDefinition().visit(visitor);
-                      return transactionFactoryType.get();
-                    }).orElse(false);
-              }))));
-      locationOptional
-          .ifPresent(location -> {
-            final Predicate<ComponentAst> pred =
-                comp -> {
-                  // TODO using location.getGlobalName() here instead of the specific location will cause the whole flow to be
-                  // initted instead of just the component.
-                  return comp.getLocation() != null && comp.getLocation().getLocation().equals(location.getGlobalName());
-                };
-            minimalApplicationModel.set(minimalApplicationModelGenerator.getMinimalModel(pred
-                .or(componentModel -> {
-                  AtomicBoolean transactionFactoryType = new AtomicBoolean(false);
-                  TypeDefinitionVisitor visitor = new TypeDefinitionVisitor() {
-
-                    @Override
-                    public void onType(Class<?> type) {
-                      transactionFactoryType.set(TransactionManagerFactory.class.isAssignableFrom(type));
-                    }
-
-                    @Override
-                    public void onConfigurationAttribute(String attributeName, Class<?> enforcedClass) {}
-
-                    @Override
-                    public void onMapType(TypeDefinition.MapEntryType mapEntryType) {}
-                  };
-                  return componentBuildingDefinitionRegistry.getBuildingDefinition(componentModel.getIdentifier())
-                      .map(componentBuildingDefinition -> {
-                        componentBuildingDefinition.getTypeDefinition().visit(visitor);
-                        return transactionFactoryType.get();
-                      }).orElse(false);
-                })));
-          });
+      ArtifactAst minimalApplicationModel = minimalApplicationModelGenerator.getMinimalModel(locationOptional
+          .map(location -> (Predicate<ComponentAst>) comp -> comp.getLocation() != null
+              // TODO using location.getGlobalName() here instead of the specific location will cause the whole flow to be
+              // initted instead of just the component.
+              && comp.getLocation().getLocation().equals(location.getGlobalName()))
+          .orElseGet(() -> predicateOptional.get())
+          .or(componentModel -> {
+            final ObjectTypeVisitor objectTypeVisitor = new ObjectTypeVisitor(componentModel);
+            return componentBuildingDefinitionRegistry.getBuildingDefinition(componentModel.getIdentifier())
+                .map(componentBuildingDefinition -> {
+                  componentBuildingDefinition.getTypeDefinition().visit(objectTypeVisitor);
+                  return TransactionManagerFactory.class.isAssignableFrom(objectTypeVisitor.getType());
+                }).orElse(false);
+          })
+          .or(componentModel -> componentModel.getIdentifier().equals(CONFIGURATION_IDENTIFIER)));
 
       // locationOptional.ifPresent(loc -> {
       // if (minimalApplicationModel.recursiveStream()
@@ -407,7 +332,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
       // }
       // });
 
-      minimalApplicationModel.get().recursiveStream()
+      minimalApplicationModel.recursiveStream()
           .forEach(componentModel -> ((ComponentModel) componentModel).setEnabled(true));
 
       if (parentComponentModelInitializerAdapter.isPresent()) {
@@ -415,12 +340,8 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
             .filter(dependencyNode -> dependencyNode.isTopLevel())
             .map(dependencyNode -> dependencyNode.getComponentName())
             .collect(toList());
-        parentComponentModelInitializerAdapter.get().initializeComponents(componentModel -> {
-          if (componentModel.getNameAttribute() != null) {
-            return missingComponentNames.contains(componentModel.getNameAttribute());
-          }
-          return false;
-        });
+        parentComponentModelInitializerAdapter.get().initializeComponents(componentModel -> componentModel.getName()
+            .map(name -> missingComponentNames.contains(name)).orElse(false));
       } else {
         dependencyResolver.getMissingDependencies().stream().forEach(globalElementName -> {
           if (LOGGER.isDebugEnabled()) {
@@ -431,20 +352,19 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
       List<String> applicationComponents =
           createApplicationComponents((DefaultListableBeanFactory) this.getBeanFactory(),
-                                      minimalApplicationModel.get(), false);
+                                      minimalApplicationModel, false);
 
       super.prepareObjectProviders();
 
-      List<Object> sortedObjects = createBeans(applicationComponents);
-      return sortedObjects;
+      return createBeans(applicationComponents);
     });
   }
 
   /**
-   * Creates the beans based on the application component model names that were enabled by the minimal application model.
-   * It also populates the list of bean names created and returns the list of beans instantiated, the list of beans
-   * is sorted based on dependencies between components (even between configuration components, flow->config and
-   * config->config dependencies from the DSL).
+   * Creates the beans based on the application component model names that were enabled by the minimal application model. It also
+   * populates the list of bean names created and returns the list of beans instantiated, the list of beans is sorted based on
+   * dependencies between components (even between configuration components, flow->config and config->config dependencies from the
+   * DSL).
    *
    * @param applicationComponentNames name of components to be created.
    * @return List beans created for the given component names sorted by precedence.
@@ -556,8 +476,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
   }
 
   /**
-   * Apply the stop and dispose phases and unregister the bean from the registry.
-   * The phases are applied to each bean at a time.
+   * Apply the stop and dispose phases and unregister the bean from the registry. The phases are applied to each bean at a time.
    *
    * @param beanNames {@link Iterator} of bean names to be stopped, disposed and unregistered.
    */
@@ -583,7 +502,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
   @FunctionalInterface
   private interface ComponentModelInitializerAdapter {
 
-    void initializeComponents(Predicate<ComponentModel> componentModelPredicate);
+    void initializeComponents(Predicate<ComponentAst> componentModelPredicate);
 
   }
 

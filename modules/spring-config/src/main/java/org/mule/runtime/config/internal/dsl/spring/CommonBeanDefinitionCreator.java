@@ -31,6 +31,7 @@ import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.streaming.bytes.CursorStreamProvider;
 import org.mule.runtime.api.util.LazyValue;
 import org.mule.runtime.api.util.Pair;
+import org.mule.runtime.ast.api.ComponentAst;
 import org.mule.runtime.config.internal.dsl.model.SpringComponentModel;
 import org.mule.runtime.config.internal.dsl.processor.ObjectTypeVisitor;
 import org.mule.runtime.config.internal.factories.ModuleOperationMessageProcessorChainFactoryBean;
@@ -187,7 +188,7 @@ public class CommonBeanDefinitionCreator extends BeanDefinitionCreator {
     }
   }
 
-  private Class<?> retrieveComponentType(final ComponentModel componentModel,
+  private Class<?> retrieveComponentType(final ComponentAst componentModel,
                                          ComponentBuildingDefinition componentBuildingDefinition) {
     ObjectTypeVisitor objectTypeVisitor = new ObjectTypeVisitor(componentModel);
     componentBuildingDefinition.getTypeDefinition().visit(objectTypeVisitor);

@@ -9,8 +9,9 @@ package org.mule.runtime.config.internal.dsl.processor;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
+
 import org.mule.runtime.api.exception.MuleRuntimeException;
-import org.mule.runtime.config.internal.model.ComponentModel;
+import org.mule.runtime.ast.api.ComponentAst;
 import org.mule.runtime.dsl.api.component.TypeDefinition;
 import org.mule.runtime.dsl.api.component.TypeDefinitionVisitor;
 
@@ -36,11 +37,11 @@ public class ObjectTypeVisitor implements TypeDefinitionVisitor {
   private static final Class<HashMap> DEFAULT_MAP_TYPE = HashMap.class;
   private static final Class<HashSet> DEFAULT_SET_CLASS = HashSet.class;
 
-  private final ComponentModel componentModel;
+  private final ComponentAst componentModel;
   private Class<?> type;
   private Optional<TypeDefinition.MapEntryType> mapEntryType = empty();
 
-  public ObjectTypeVisitor(ComponentModel componentModel) {
+  public ObjectTypeVisitor(ComponentAst componentModel) {
     this.componentModel = componentModel;
   }
 
@@ -65,15 +66,16 @@ public class ObjectTypeVisitor implements TypeDefinitionVisitor {
   public void onConfigurationAttribute(String attributeName, Class<?> enforcedClass) {
     try {
       type =
-          ClassUtils.getClass(Thread.currentThread().getContextClassLoader(), componentModel.getParameters().get(attributeName));
+          ClassUtils.getClass(Thread.currentThread().getContextClassLoader(),
+                              componentModel.getRawParameterValue(attributeName).orElse(null));
       if (!enforcedClass.isAssignableFrom(type)) {
         throw new MuleRuntimeException(createStaticMessage("Class definition for type %s on element %s is not the same nor inherits from %s",
-                                                           componentModel.getParameters().get(attributeName),
+                                                           componentModel.getRawParameterValue(attributeName).orElse(null),
                                                            componentModel.getIdentifier(), enforcedClass.getName()));
       }
     } catch (ClassNotFoundException e) {
       throw new MuleRuntimeException(createStaticMessage("Error while trying to locate Class definition for type %s on element %s",
-                                                         componentModel.getParameters().get(attributeName),
+                                                         componentModel.getRawParameterValue(attributeName).orElse(null),
                                                          componentModel.getIdentifier()),
                                      e);
     }

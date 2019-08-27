@@ -6,28 +6,16 @@
  */
 package org.mule.runtime.config.internal.dsl.model;
 
-import static java.util.Collections.emptySet;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 import static org.mule.runtime.ast.graph.api.ArtifactAstGraphFactory.generateFor;
 import static org.mule.runtime.config.api.dsl.CoreDslConstants.CONFIGURATION_IDENTIFIER;
-import static org.mule.runtime.config.internal.dsl.model.DependencyNode.Type.TOP_LEVEL;
 
-import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.ast.api.ArtifactAst;
 import org.mule.runtime.ast.api.ComponentAst;
-import org.mule.runtime.ast.graph.api.ArtifactAstGraph;
-import org.mule.runtime.ast.graph.api.ArtifactAstGraphFactory;
 import org.mule.runtime.config.api.LazyComponentInitializer;
 import org.mule.runtime.config.internal.model.ApplicationModel;
 import org.mule.runtime.config.internal.model.ComponentModel;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 import java.util.function.Predicate;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Generates the minimal required component set to create a configuration component (i.e.: file:config, ftp:connection, a flow
@@ -82,155 +70,6 @@ public class MinimalApplicationModelGenerator {
                 && ("spring".equals(comp.getIdentifier().getNamespace())
                     && ("config".equals(comp.getIdentifier().getName())
                         || "security-manager".equals(comp.getIdentifier().getName())))));
-
-    // List<ComponentAst> required = dependencyResolver.findRequiredComponentModels(predicate);
-    //
-    // required.stream().forEach(componentModel -> {
-    // final ComponentLocation componentLocation = componentModel.getLocation();
-    // if (componentLocation != null) {
-    // enableComponentDependencies(componentModel);
-    // }
-    // });
-    // return dependencyResolver.getApplicationModel();
-  }
-
-  /**
-   * Resolves the minimal set of {@link ComponentModel componentModels} for the component.
-   *
-   * @param location {@link Location} for the requested component to be enabled.
-   * @return the generated {@link ApplicationModel} with the minimal set of {@link ComponentModel}s required.
-   * @throws NoSuchComponentModelException if the location doesn't match to a component.
-   */
-  public ArtifactAst getMinimalModel(Location location) {
-    return getMinimalModel(comp -> comp.getLocation() != null && comp.getLocation().toString().equals(location.toString()));
-
-    // ComponentAst requestedComponentModel = (ComponentAst) dependencyResolver.findRequiredComponentModel(location);
-    // enableComponentDependencies(requestedComponentModel);
-    // return dependencyResolver.getApplicationModel();
-  }
-
-  /**
-   * Enables the {@link ComponentModel} and its dependencies in the {@link ApplicationModel}.
-   *
-   * @param requestedComponentModel the requested {@link ComponentModel} to be enabled.
-   */
-  private void enableComponentDependencies(ComponentAst requestedComponentModel) {
-
-
-    // final List<String> collect = requestedComponentModel.getComponentModel().get().getAllParameterModels().stream()
-    // .filter(paramModel -> !paramModel.getAllowedStereotypes().isEmpty())
-    // .map(paramModel -> paramModel.getName())
-    // .collect(Collectors.toList());
-
-    final ArtifactAstGraph generateFor = ArtifactAstGraphFactory.generateFor(this.dependencyResolver.getApplicationModel());
-
-
-    System.out.println(requestedComponentModel.getIdentifier());
-    System.out.println(generateFor.toString());
-
-
-    final String requestComponentModelName = requestedComponentModel.getName().orElse(null);
-    final Set<DependencyNode> componentDependencies =
-        dependencyResolver.resolveComponentDependencies(requestedComponentModel);
-    final Set<DependencyNode> alwaysEnabledComponents =
-        ignoreAlwaysEnabled ? emptySet() : dependencyResolver.resolveAlwaysEnabledComponents();
-    final ImmutableSet.Builder<DependencyNode> otherRequiredGlobalComponentsSetBuilder =
-        ImmutableSet.<DependencyNode>builder().addAll(componentDependencies)
-            .addAll(alwaysEnabledComponents.stream().filter(dependencyNode -> dependencyNode.isTopLevel()).collect(toList()));
-    if (requestComponentModelName != null
-        && dependencyResolver.getApplicationModel().findTopLevelNamedComponent(requestComponentModelName).isPresent()) {
-      otherRequiredGlobalComponentsSetBuilder.add(new DependencyNode(requestComponentModelName, TOP_LEVEL));
-    }
-    Set<DependencyNode> allRequiredComponentModels = resolveDependencies(otherRequiredGlobalComponentsSetBuilder.build());
-    enableTopLevelElementDependencies(allRequiredComponentModels);
-    enableInnerElementDependencies(allRequiredComponentModels);
-
-    ComponentModel parentModel = ((ComponentModel) requestedComponentModel).getParent();
-    while (parentModel != null && parentModel.getParent() != null) {
-      parentModel.setEnabled(true);
-      parentModel = parentModel.getParent();
-    }
-
-    alwaysEnabledComponents.stream()
-        .filter(dependencyNode -> dependencyNode.isUnnamedTopLevel() && dependencyNode.getComponentIdentifier().isPresent())
-        .forEach(dependencyNode -> dependencyResolver.getApplicationModel()
-            .findComponentDefinitionModel(dependencyNode.getComponentIdentifier().get())
-            .ifPresent(componentModel -> {
-              componentModel.setEnabled(true);
-              componentModel.executedOnEveryInnerComponent(innerComponent -> innerComponent.setEnabled(true));
-            }));
-
-
-    // Finally we set the requested componentModel as enabled as it could have been disabled when traversing dependencies
-    ((ComponentModel) requestedComponentModel).setEnabled(true);
-    ((ComponentModel) requestedComponentModel).executedOnEveryInnerComponent(componentModel -> componentModel.setEnabled(true));
-    enableParentComponentModels(requestedComponentModel);
-
-    // Mule root component model has to be enabled too
-    this.dependencyResolver.getApplicationModel().getRootComponentModel().setEnabled(true);
-  }
-
-  private void enableInnerElementDependencies(Set<DependencyNode> allRequiredComponentModels) {
-    Set<String> noneTopLevelDendencyNames = allRequiredComponentModels.stream()
-        .filter(dependencyNode -> !dependencyNode.isTopLevel())
-        .map(dependencyNode -> dependencyNode.getComponentName())
-        .collect(toSet());
-    dependencyResolver.getApplicationModel().executeOnEveryComponentTree(componentModel -> {
-      if (!componentModel.isEnabled() && componentModel.getNameAttribute() != null
-          && noneTopLevelDendencyNames.contains(componentModel.getNameAttribute())) {
-        componentModel.setEnabled(true);
-        componentModel.executedOnEveryInnerComponent(component -> component.setEnabled(true));
-        enableParentComponentModels((ComponentAst) componentModel);
-      }
-    });
-  }
-
-  private void enableTopLevelElementDependencies(Set<DependencyNode> allRequiredComponentModels) {
-    Set<String> topLevelDendencyNames = allRequiredComponentModels.stream()
-        .filter(dependencyNode -> dependencyNode.isTopLevel())
-        .map(dependencyNode -> dependencyNode.getComponentName())
-        .collect(toSet());
-
-    Iterator<ComponentModel> iterator =
-        dependencyResolver.getApplicationModel().getRootComponentModel().getInnerComponents().iterator();
-    while (iterator.hasNext()) {
-      ComponentModel componentModel = iterator.next();
-      if (componentModel.getNameAttribute() != null && topLevelDendencyNames.contains(componentModel.getNameAttribute())) {
-        componentModel.setEnabled(true);
-        componentModel.executedOnEveryInnerComponent(component -> component.setEnabled(true));
-      }
-    }
-  }
-
-  private void enableParentComponentModels(ComponentAst requestedComponentModel) {
-    ComponentModel parentModel = ((ComponentModel) requestedComponentModel).getParent();
-    while (parentModel != null && parentModel.getParent() != null) {
-      parentModel.setEnabled(true);
-      parentModel = parentModel.getParent();
-    }
-  }
-
-  /**
-   * Resolve all the dependencies for an initial components set.
-   *
-   * @param initialComponents {@ling Set} of initial components to retrieve their dependencies
-   * @return a new {@ling Set} with all the dependencies needed to run all the initial components
-   */
-  private Set<DependencyNode> resolveDependencies(Set<DependencyNode> initialComponents) {
-    Set<DependencyNode> difference = initialComponents;
-    Set<DependencyNode> allRequiredComponentModels = new HashSet<>(initialComponents);
-
-    // While there are new dependencies resolved, calculate their dependencies
-    // This fixes bugs related to not resolving dependencies of dependencies, such as a config for a config
-    // e.g. tlsContext for http request, or a flow-ref inside a flow that is being referenced in another flow.
-    while (difference.size() > 0) {
-      // Only calculate the dependencies for the difference, to avoid recalculating
-      Set<DependencyNode> newDependencies = dependencyResolver.findComponentModelsDependencies(difference);
-      newDependencies.removeAll(allRequiredComponentModels);
-      allRequiredComponentModels.addAll(newDependencies);
-      difference = newDependencies;
-    }
-    return allRequiredComponentModels;
   }
 
 }

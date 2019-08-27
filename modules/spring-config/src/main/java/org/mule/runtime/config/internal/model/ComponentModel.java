@@ -342,6 +342,7 @@ public abstract class ComponentModel {
    * @return {@code true} if this component is enabled and has to be created.
    */
   public boolean isEnabled() {
+    // return true;
     return this.enabled;
   }
 
