@@ -467,7 +467,7 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
           return;
         }
 
-        if (componentModel.isEnabled() || alwaysEnabledUnnamedTopLevelComponents.contains(componentModel.getIdentifier())) {
+        if (componentModel.isEnabled()) {
           if (componentModel.getNameAttribute() != null) {
             createdComponentModels.add(componentModel.getNameAttribute());
           }
@@ -476,7 +476,6 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
                                            (resolvedComponentModel, registry) -> {
                                              SpringComponentModel resolvedSpringComponentModel =
                                                  (SpringComponentModel) resolvedComponentModel;
-                                             // if (resolvedComponentModel.isRoot()) {
                                              String nameAttribute = resolvedComponentModel.getNameAttribute();
                                              if (resolvedComponentModel.getIdentifier().equals(CONFIGURATION_IDENTIFIER)) {
                                                nameAttribute = OBJECT_MULE_CONFIGURATION;
@@ -494,7 +493,6 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
                                              registry.registerBeanDefinition(nameAttribute,
                                                                              resolvedSpringComponentModel.getBeanDefinition());
                                              postProcessBeanDefinition(componentModel, registry, nameAttribute);
-                                             // }
                                            }, null, componentLocator);
 
         } else {

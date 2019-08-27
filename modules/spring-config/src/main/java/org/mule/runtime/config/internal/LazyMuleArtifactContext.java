@@ -98,7 +98,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
   private final Optional<ComponentModelInitializer> parentComponentModelInitializer;
 
-  private final ConfigurationDependencyResolver dependencyResolver;
+  // private final ConfigurationDependencyResolver dependencyResolver;
 
   /**
    * Parses configuration files creating a spring ApplicationContext which is used as a parent registry using the SpringRegistry
@@ -137,7 +137,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
     this.parentComponentModelInitializer = parentComponentModelInitializer;
 
-    dependencyResolver = new ConfigurationDependencyResolver(this.applicationModel, componentBuildingDefinitionRegistry);
+    // dependencyResolver = new ConfigurationDependencyResolver(this.applicationModel, componentBuildingDefinitionRegistry);
 
 
     muleContext.getCustomizationService().overrideDefaultServiceImpl(CONNECTIVITY_TESTING_SERVICE_KEY,
@@ -168,6 +168,11 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
     }
   }
+
+  // @Override
+  // protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) {
+  // // Nothing to do, the bean definitions will be loaded lazily
+  // }
 
   private static Map<String, String> extendArtifactProperties(Map<String, String> artifactProperties) {
     Map<String, String> extendedArtifactProperties = new HashMap<>(artifactProperties);
@@ -304,7 +309,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
       applicationModel.executeOnEveryMuleComponentTree(componentModel -> componentModel.setEnabled(false));
 
       MinimalApplicationModelGenerator minimalApplicationModelGenerator =
-          new MinimalApplicationModelGenerator(dependencyResolver);
+          new MinimalApplicationModelGenerator(getDependencyResolver());
       // Force initialization of configuration component...
       resetMuleConfiguration(minimalApplicationModelGenerator);
 
@@ -323,7 +328,16 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
                   return TransactionManagerFactory.class.isAssignableFrom(objectTypeVisitor.getType());
                 }).orElse(false);
           })
-          .or(componentModel -> componentModel.getIdentifier().equals(CONFIGURATION_IDENTIFIER)));
+          .or(componentModel -> componentModel.getIdentifier().equals(CONFIGURATION_IDENTIFIER))
+          .or(componentModel -> {
+            return getDependencyResolver().resolveAlwaysEnabledComponents().stream().anyMatch(dependencyNode -> {
+              return !dependencyNode.isTopLevel()
+                  && dependencyNode.isUnnamedTopLevel()
+                  && dependencyNode.getComponentIdentifier()
+                      .map(depId -> componentModel.getIdentifier().equals(depId))
+                      .orElse(false);
+            });
+          }));
 
       // locationOptional.ifPresent(loc -> {
       // if (minimalApplicationModel.recursiveStream()
@@ -336,14 +350,14 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
           .forEach(componentModel -> ((ComponentModel) componentModel).setEnabled(true));
 
       if (parentComponentModelInitializerAdapter.isPresent()) {
-        List<String> missingComponentNames = dependencyResolver.getMissingDependencies().stream()
+        List<String> missingComponentNames = getDependencyResolver().getMissingDependencies().stream()
             .filter(dependencyNode -> dependencyNode.isTopLevel())
             .map(dependencyNode -> dependencyNode.getComponentName())
             .collect(toList());
         parentComponentModelInitializerAdapter.get().initializeComponents(componentModel -> componentModel.getName()
             .map(name -> missingComponentNames.contains(name)).orElse(false));
       } else {
-        dependencyResolver.getMissingDependencies().stream().forEach(globalElementName -> {
+        getDependencyResolver().getMissingDependencies().stream().forEach(globalElementName -> {
           if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(String.format("Ignoring dependency %s because it does not exists", globalElementName));
           }
