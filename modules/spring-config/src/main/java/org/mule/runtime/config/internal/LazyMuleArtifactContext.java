@@ -99,8 +99,6 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
   private final Optional<ComponentModelInitializer> parentComponentModelInitializer;
 
-  private DefaultListableBeanFactory beanFactory;
-
   // private final ConfigurationDependencyResolver dependencyResolver;
 
   /**
@@ -171,14 +169,36 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
   @Override
   protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws IOException {
-    // Nothing to do, the bean definitions will be loaded lazily
-    this.beanFactory = beanFactory;
-    super.loadBeanDefinitions(beanFactory);
+    // super.loadBeanDefinitions(beanFactory);
+    lalalaCreateApplicationComponents(beanFactory, applicationModel);
+  }
+
+  /**
+   * Creates the definition for all the objects to be created form the enabled components in the {@code applicationModel}.
+   *
+   * @param beanFactory the bean factory in which definition must be created.
+   * @param applicationModel the artifact application model.
+   * @return an order list of the created bean names. The order must be respected for the creation of the objects.
+   */
+  protected void lalalaCreateApplicationComponents(DefaultListableBeanFactory beanFactory, ArtifactAst applicationModel) {
+    applicationModel.recursiveStream().forEach(componentModel -> {
+      // if (componentModel.isRoot()) {
+      if (beanDefinitionFactory.isComponentIgnored(componentModel.getIdentifier())) {
+        return;
+      }
+
+      // cm.recursiveStream().forEach(model -> {
+      // Just register the location, for support of lazyInit scenarios
+      // TODO need to generate the paths for macroexpanded smart connectors here too
+      componentLocator.addComponentLocation(componentModel.getLocation());
+      // });
+      // }
+    });
   }
 
   private static Map<String, String> extendArtifactProperties(Map<String, String> artifactProperties) {
     Map<String, String> extendedArtifactProperties = new HashMap<>(artifactProperties);
-    extendedArtifactProperties.put(MULE_LAZY_INIT_DEPLOYMENT_PROPERTY, "true");
+    extendedArtifactProperties.put(MULE_LAZY_INIT_DEPLOYMENT_PROPERTY, Boolean.toString(true));
     return extendedArtifactProperties;
   }
 
