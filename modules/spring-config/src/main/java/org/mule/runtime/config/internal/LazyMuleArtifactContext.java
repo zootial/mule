@@ -43,6 +43,7 @@ import org.mule.runtime.app.declaration.api.ArtifactDeclaration;
 import org.mule.runtime.ast.api.ArtifactAst;
 import org.mule.runtime.ast.api.ComponentAst;
 import org.mule.runtime.config.internal.dsl.model.ConfigurationDependencyResolver;
+import org.mule.runtime.config.internal.dsl.model.NoSuchComponentModelException;
 import org.mule.runtime.config.internal.dsl.model.MinimalApplicationModelGenerator;
 import org.mule.runtime.config.internal.model.ComponentModel;
 import org.mule.runtime.core.api.MuleContext;
@@ -317,6 +318,12 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
   private List<Object> createComponents(Optional<Predicate> predicateOptional, Optional<Location> locationOptional,
                                         Optional<ComponentModelInitializerAdapter> parentComponentModelInitializerAdapter) {
     checkState(predicateOptional.isPresent() != locationOptional.isPresent(), "predicate or location has to be passed");
+    locationOptional.ifPresent(loc -> {
+      if (!componentLocator.find(loc).isPresent()) {
+        throw new NoSuchComponentModelException(createStaticMessage("No object found at location " + loc.toString()));
+      }
+    });
+
     return withContextClassLoader(muleContext.getExecutionClassLoader(), () -> {
       // First unregister any already initialized/started component
       unregisterBeans(beansCreated);
@@ -362,7 +369,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
                 comp -> {
                   // TODO using location.getGlobalName() here instead of the specific location will cause the whole flow to be
                   // initted instead of just the component.
-                  return comp.getLocation() != null && comp.getLocation().getLocation().toString().equals(location.getGlobalName());
+                  return comp.getLocation() != null && comp.getLocation().getLocation().equals(location.getGlobalName());
                 };
             minimalApplicationModel.set(minimalApplicationModelGenerator.getMinimalModel(pred
                 .or(componentModel -> {
@@ -387,6 +394,13 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
                       }).orElse(false);
                 })));
           });
+
+      // locationOptional.ifPresent(loc -> {
+      // if (minimalApplicationModel.recursiveStream()
+      // .noneMatch(comp -> comp.getLocation().getLocation().equals(loc.toString()))) {
+      // throw new NoSuchComponentModelException(createStaticMessage("No object found at location " + loc.toString()));
+      // }
+      // });
 
       minimalApplicationModel.get().recursiveStream()
           .forEach(componentModel -> ((ComponentModel) componentModel).setEnabled(true));
