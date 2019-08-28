@@ -314,12 +314,6 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
   private List<Object> createComponents(Optional<Predicate<ComponentAst>> predicateOptional, Optional<Location> locationOptional,
                                         Optional<ComponentModelInitializerAdapter> parentComponentModelInitializerAdapter) {
     checkState(predicateOptional.isPresent() != locationOptional.isPresent(), "predicate or location has to be passed");
-    locationOptional.ifPresent(loc -> {
-      if (!componentLocator.find(loc).isPresent()) {
-        throw new NoSuchComponentModelException(createStaticMessage("No object found at location " + loc.toString()));
-      }
-    });
-
     return withContextClassLoader(muleContext.getExecutionClassLoader(), () -> {
       // First unregister any already initialized/started component
       unregisterBeans(beansCreated);
@@ -360,12 +354,12 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
                 });
               }));
 
-      // locationOptional.ifPresent(loc -> {
-      // if (minimalApplicationModel.recursiveStream()
-      // .noneMatch(comp -> comp.getLocation().getLocation().equals(loc.toString()))) {
-      // throw new NoSuchComponentModelException(createStaticMessage("No object found at location " + loc.toString()));
-      // }
-      // });
+      locationOptional.ifPresent(loc -> {
+        if (minimalApplicationModel.recursiveStream()
+            .noneMatch(comp -> comp.getLocation() != null && comp.getLocation().getLocation().equals(loc.toString()))) {
+          throw new NoSuchComponentModelException(createStaticMessage("No object found at location " + loc.toString()));
+        }
+      });
 
       minimalApplicationModel.recursiveStream()
           .forEach(componentModel -> ((ComponentModel) componentModel).setEnabled(true));
