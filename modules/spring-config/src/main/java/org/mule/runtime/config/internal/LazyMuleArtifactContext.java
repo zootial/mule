@@ -360,7 +360,9 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
           .ifPresent(location -> {
             final Predicate<ComponentAst> pred =
                 comp -> {
-                  return comp.getLocation() != null && comp.getLocation().getLocation().toString().equals(location.toString());
+                  // TODO using location.getGlobalName() here instead of the specific location will cause the whole flow to be
+                  // initted instead of just the component.
+                  return comp.getLocation() != null && comp.getLocation().getLocation().toString().equals(location.getGlobalName());
                 };
             minimalApplicationModel.set(minimalApplicationModelGenerator.getMinimalModel(pred
                 .or(componentModel -> {
