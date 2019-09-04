@@ -2,25 +2,33 @@
   "4.1.5": {
     "revapi": {
       "ignore": [
-       {
-  "code": "java.method.added",
-   "new": "method org.reactivestreams.Publisher<org.mule.runtime.core.api.event.CoreEvent> org.mule.runtime.core.privileged.processor.MessageProcessors::justPublishOn(org.mule.runtime.core.api.event.CoreEvent, java.util.concurrent.ExecutorService)",
-   "package": "org.mule.runtime.core.privileged.processor",
-   "classSimpleName": "MessageProcessors",
-   "methodName": "justPublishOn",
-   "elementKind": "method",
-   "justification": "cherry-pick"
- },
- {
-   "code": "java.method.added",
-   "new": "method org.reactivestreams.Publisher<org.mule.runtime.core.api.event.CoreEvent> org.mule.runtime.core.privileged.processor.MessageProcessors::map(org.reactivestreams.Publisher<org.mule.runtime.core.api.event.CoreEvent>, java.util.function.Function<org.mule.runtime.core.api.event.CoreEvent, org.mule.runtime.core.api.event.CoreEvent>)",
-   "package": "org.mule.runtime.core.privileged.processor",
-   "classSimpleName": "MessageProcessors",
-   "methodName": "map",
-   "elementKind": "method",
-   "justification":  "cherry-pick"
- },
-      
+        {
+          "code": "java.method.added",
+          "new": "method org.reactivestreams.Publisher<org.mule.runtime.core.api.event.CoreEvent> org.mule.runtime.core.privileged.processor.MessageProcessors::justPublishOn(org.mule.runtime.core.api.event.CoreEvent, java.util.concurrent.ExecutorService)",
+          "package": "org.mule.runtime.core.privileged.processor",
+          "classSimpleName": "MessageProcessors",
+          "methodName": "justPublishOn",
+          "elementKind": "method",
+          "justification": "cherry-pick"
+        },
+        {
+          "code": "java.method.added",
+          "new": "method org.reactivestreams.Publisher<org.mule.runtime.core.api.event.CoreEvent> org.mule.runtime.core.privileged.processor.MessageProcessors::processWithChildContextAlwaysComplete(org.mule.runtime.core.api.event.CoreEvent, org.mule.runtime.core.api.processor.ReactiveProcessor, java.util.Optional<org.mule.runtime.api.component.location.ComponentLocation>)",
+          "package": "org.mule.runtime.core.privileged.processor",
+          "classSimpleName": "MessageProcessors",
+          "methodName": "processWithChildContextAlwaysComplete",
+          "elementKind": "method",
+          "justification": "MULE-17403: Fix Child context not completed when an error is thrown in Operation policies"
+        },
+        {
+          "code": "java.method.added",
+          "new": "method org.reactivestreams.Publisher<org.mule.runtime.core.api.event.CoreEvent> org.mule.runtime.core.privileged.processor.MessageProcessors::map(org.reactivestreams.Publisher<org.mule.runtime.core.api.event.CoreEvent>, java.util.function.Function<org.mule.runtime.core.api.event.CoreEvent, org.mule.runtime.core.api.event.CoreEvent>)",
+          "package": "org.mule.runtime.core.privileged.processor",
+          "classSimpleName": "MessageProcessors",
+          "methodName": "map",
+          "elementKind": "method",
+          "justification": "cherry-pick"
+        },
         {
           "code": "java.method.added",
           "new": "method org.mule.runtime.core.api.exception.ErrorTypeMatcher org.mule.runtime.core.privileged.exception.TemplateOnErrorHandler::createErrorType(org.mule.runtime.api.exception.ErrorTypeRepository, java.lang.String, org.mule.runtime.api.component.ConfigurationProperties)",
@@ -50,7 +58,7 @@
           "classSimpleName": "CaseInsensitiveHashMap",
           "fieldName": "serialVersionUID",
           "elementKind": "field",
-         "justification": "Just generalizing a type definition"
+          "justification": "Just generalizing a type definition"
         },
         {
           "code": "java.method.added",
@@ -104,13 +112,13 @@
     "revapi": {
       "ignore": [
         {
-        "code": "java.field.addedStaticField",
-        "new": "field org.mule.runtime.core.api.config.MuleProperties.MULE_STREAMING_BUCKET_SIZE",
-        "package": "org.mule.runtime.core.api.config",
-        "classSimpleName": "MuleProperties",
-        "fieldName": "MULE_STREAMING_BUCKET_SIZE",
-        "elementKind": "field",
-        "justification": "This is a false positive"
+          "code": "java.field.addedStaticField",
+          "new": "field org.mule.runtime.core.api.config.MuleProperties.MULE_STREAMING_BUCKET_SIZE",
+          "package": "org.mule.runtime.core.api.config",
+          "classSimpleName": "MuleProperties",
+          "fieldName": "MULE_STREAMING_BUCKET_SIZE",
+          "elementKind": "field",
+          "justification": "This is a false positive"
         },
         {
           "code": "java.method.added",
