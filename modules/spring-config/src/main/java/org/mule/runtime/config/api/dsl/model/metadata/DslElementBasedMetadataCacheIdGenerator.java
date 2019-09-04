@@ -22,7 +22,6 @@ import org.mule.metadata.api.visitor.MetadataTypeVisitor;
 import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.meta.NamedObject;
 import org.mule.runtime.api.meta.model.ComponentModel;
-import org.mule.runtime.api.meta.model.EnrichableModel;
 import org.mule.runtime.api.meta.model.HasOutputModel;
 import org.mule.runtime.api.meta.model.config.ConfigurationModel;
 import org.mule.runtime.api.meta.model.parameter.ParameterModel;
@@ -30,6 +29,10 @@ import org.mule.runtime.api.meta.model.parameter.ParameterizedModel;
 import org.mule.runtime.api.metadata.resolving.PartialTypeKeysResolver;
 import org.mule.runtime.api.util.Reference;
 import org.mule.runtime.config.api.dsl.model.DslElementModel;
+import org.mule.runtime.config.api.dsl.model.metadata.filter.AnnotatedOrBlackListedRequiredForMetadataParameterFilter;
+import org.mule.runtime.config.api.dsl.model.metadata.filter.AnnotationRequiredForMetadataParameterFilter;
+import org.mule.runtime.config.api.dsl.model.metadata.filter.RequiredForMetadataParameterFilter;
+import org.mule.runtime.config.api.dsl.model.metadata.filter.RequiredForMetadataParameterFilterFactory;
 import org.mule.runtime.config.api.dsl.model.metadata.types.AttributesMetadataResolutionTypeInformation;
 import org.mule.runtime.config.api.dsl.model.metadata.types.InputMetadataResolutionTypeInformation;
 import org.mule.runtime.config.api.dsl.model.metadata.types.KeysMetadataResolutionTypeInformation;
@@ -42,7 +45,6 @@ import org.mule.runtime.dsl.api.component.config.ComponentConfiguration;
 import org.mule.runtime.extension.api.declaration.type.annotation.TypeDslAnnotation;
 import org.mule.runtime.extension.api.property.MetadataKeyIdModelProperty;
 import org.mule.runtime.extension.api.property.MetadataKeyPartModelProperty;
-import org.mule.runtime.extension.api.property.RequiredForMetadataModelProperty;
 import org.mule.runtime.extension.api.util.ExtensionMetadataTypeUtils;
 import org.mule.runtime.module.extension.internal.loader.java.property.MetadataResolverFactoryModelProperty;
 
@@ -50,7 +52,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,9 +65,11 @@ public class DslElementBasedMetadataCacheIdGenerator implements MetadataCacheIdG
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DslElementBasedMetadataCacheIdGenerator.class);
   private final ComponentLocator<DslElementModel<?>> locator;
+  private final RequiredForMetadataParameterFilterFactory requiredForMetadataParameterFilterFactory;
 
   public DslElementBasedMetadataCacheIdGenerator(ComponentLocator<DslElementModel<?>> locator) {
     this.locator = locator;
+    this.requiredForMetadataParameterFilterFactory = AnnotatedOrBlackListedRequiredForMetadataParameterFilter::new;
   }
 
   /**
@@ -238,11 +241,11 @@ public class DslElementBasedMetadataCacheIdGenerator implements MetadataCacheIdG
 
   private Optional<MetadataCacheId> resolveGlobalElement(DslElementModel<?> elementModel) {
     List<MetadataCacheId> parts = new ArrayList<>();
-    Predicate isRequiredForMetadata = parameterNamesRequiredForMetadataCacheId(elementModel.getModel())
-        .map((names) -> (Predicate) ((model) -> isRequiredForMetadata(names, model))).orElse((model) -> true);
+    RequiredForMetadataParameterFilter parameterFilter =
+        requiredForMetadataParameterFilterFactory.createFilter(elementModel.getModel());
     elementModel.getContainedElements().stream()
         .filter(containedElement -> containedElement.getModel() != null)
-        .filter(containedElement -> isRequiredForMetadata.test(containedElement.getModel()))
+        .filter(containerElement -> parameterFilter.isRequiredForMetadata(containerElement.getModel()))
         .forEach(containedElement -> {
           if (containedElement.getValue().isPresent()) {
             resolveKeyFromSimpleValue(containedElement).ifPresent(parts::add);
@@ -256,22 +259,6 @@ public class DslElementBasedMetadataCacheIdGenerator implements MetadataCacheIdG
     }
 
     return of(new MetadataCacheId(parts, getModelName(elementModel.getModel()).orElse(null)));
-  }
-
-  private boolean isRequiredForMetadata(List<String> parameterNamesRequiredForMetadataCacheId, Object model) {
-    if (model instanceof ParameterModel && parameterNamesRequiredForMetadataCacheId != null) {
-      return parameterNamesRequiredForMetadataCacheId.contains(((ParameterModel) model).getName());
-    } else {
-      return true;
-    }
-  }
-
-  private Optional<List<String>> parameterNamesRequiredForMetadataCacheId(Object model) {
-    if (model instanceof EnrichableModel) {
-      return ((EnrichableModel) model).getModelProperty(RequiredForMetadataModelProperty.class)
-          .map(RequiredForMetadataModelProperty::getRequiredParameters);
-    }
-    return empty();
   }
 
   private Optional<MetadataCacheId> resolveMetadataKeyParts(DslElementModel<?> elementModel,

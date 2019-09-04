@@ -203,8 +203,8 @@ public abstract class AbstractDslModelTestCase {
         });
 
     List<String> parameters = new ArrayList<>();
-    parameters.add(BEHAVIOUR_NAME);
-    RequiredForMetadataModelProperty requiredForMetadataModelProperty = new RequiredForMetadataModelProperty(parameters);
+    //parameters.add(BEHAVIOUR_NAME);
+    //RequiredForMetadataModelProperty requiredForMetadataModelProperty = new RequiredForMetadataModelProperty(parameters);
 
     when(connectionProvider.getName()).thenReturn(CONNECTION_PROVIDER_NAME);
     when(connectionProvider.getParameterGroupModels()).thenReturn(asList(parameterGroupModel));
@@ -215,10 +215,10 @@ public abstract class AbstractDslModelTestCase {
     when(configuration.getSourceModels()).thenReturn(asList(source));
     when(configuration.getConnectionProviders()).thenReturn(asList(connectionProvider));
 
-    when(configuration.getModelProperty(RequiredForMetadataModelProperty.class))
-        .thenReturn(of(requiredForMetadataModelProperty));
-    when(connectionProvider.getModelProperty(RequiredForMetadataModelProperty.class))
-        .thenReturn(of(requiredForMetadataModelProperty));
+    when(configuration.getModelProperty(RequiredForMetadataModelProperty.class)).thenReturn(empty());
+    //.thenReturn(of(requiredForMetadataModelProperty));
+    when(connectionProvider.getModelProperty(RequiredForMetadataModelProperty.class)).thenReturn(empty());
+    //.thenReturn(of(requiredForMetadataModelProperty));
 
     when(source.getName()).thenReturn(SOURCE_NAME);
     when(source.getParameterGroupModels()).thenReturn(asList(parameterGroupModel));
