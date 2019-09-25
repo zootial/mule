@@ -22,6 +22,7 @@ import org.mule.runtime.api.meta.model.declaration.fluent.SourceDeclaration;
 import org.mule.runtime.api.meta.model.declaration.fluent.TypedDeclaration;
 import org.mule.runtime.api.meta.model.declaration.fluent.WithOutputDeclaration;
 import org.mule.runtime.api.metadata.resolving.NamedTypeResolver;
+import org.mule.runtime.api.metadata.resolving.PartialTypeKeysResolver;
 import org.mule.runtime.api.metadata.resolving.TypeKeysResolver;
 import org.mule.runtime.api.util.collection.Collectors;
 import org.mule.runtime.core.internal.metadata.DefaultMetadataResolverFactory;
@@ -189,6 +190,8 @@ public class DynamicMetadataDeclarationEnricher implements DeclarationEnricher {
         String attributesResolver = metadataScope.getAttributesResolver().get().getResolverName();
         String keysResolver = metadataScope.getKeysResolver().get().getResolverName();
 
+        boolean isPartialFetching = metadataScope.getKeysResolver().get() instanceof PartialTypeKeysResolver;
+
         // TODO MULE-15638 - Once Metadata API 2.0 is implemented we will know better if the resolver requires or not a connection
         // of config.
         declaration.addModelProperty(new TypeResolversInformationModelProperty(categoryName,
@@ -197,7 +200,8 @@ public class DynamicMetadataDeclarationEnricher implements DeclarationEnricher {
                                                                                attributesResolver,
                                                                                keysResolver,
                                                                                requiresConnection,
-                                                                               requiresConnection));
+                                                                               requiresConnection,
+                                                                               isPartialFetching));
       }
     }
 
