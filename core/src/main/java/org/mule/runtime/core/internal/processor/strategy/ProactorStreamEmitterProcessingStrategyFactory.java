@@ -200,7 +200,6 @@ public class ProactorStreamEmitterProcessingStrategyFactory extends ReactorStrea
       }
     }
 
-    @Override
     protected int getBufferQueueSize() {
       return bufferSize / (maxConcurrency < CORES ? maxConcurrency : CORES);
     }
