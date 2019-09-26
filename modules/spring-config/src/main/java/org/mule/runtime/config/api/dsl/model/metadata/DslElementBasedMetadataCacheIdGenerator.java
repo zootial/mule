@@ -44,6 +44,8 @@ import org.mule.runtime.extension.api.declaration.type.annotation.TypeDslAnnotat
 import org.mule.runtime.extension.api.property.MetadataKeyIdModelProperty;
 import org.mule.runtime.extension.api.property.MetadataKeyPartModelProperty;
 import org.mule.runtime.extension.api.property.RequiredForMetadataModelProperty;
+import org.mule.runtime.extension.api.property.ResolverInformation;
+import org.mule.runtime.extension.api.property.TypeResolversInformationModelProperty;
 import org.mule.runtime.extension.api.util.ExtensionMetadataTypeUtils;
 import org.mule.runtime.module.extension.internal.loader.java.property.MetadataResolverFactoryModelProperty;
 
@@ -283,8 +285,9 @@ public class DslElementBasedMetadataCacheIdGenerator implements MetadataCacheIdG
                                                             boolean resolveAllKeys) {
     List<MetadataCacheId> keyParts = new ArrayList<>();
 
-    boolean isPartialFetching = componentModel.getModelProperty(MetadataResolverFactoryModelProperty.class)
-        .map(mp -> mp.getMetadataResolverFactory().getKeyResolver()).map(kr -> kr instanceof PartialTypeKeysResolver)
+    boolean isPartialFetching = componentModel
+        .getModelProperty(TypeResolversInformationModelProperty.class)
+        .flatMap(mp -> mp.getKeysResolver().map(ResolverInformation::isPartialFetch))
         .orElse(false);
 
     if (isPartialFetching || resolveAllKeys) {
