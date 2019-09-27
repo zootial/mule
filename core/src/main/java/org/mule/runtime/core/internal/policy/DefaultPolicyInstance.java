@@ -46,12 +46,14 @@ import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.ReactiveProcessor.ProcessingType;
 import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
+import org.mule.runtime.core.api.processor.strategy.ProcessingStrategyFactory;
 import org.mule.runtime.core.api.util.UUID;
 import org.mule.runtime.core.internal.lifecycle.DefaultLifecycleManager;
 import org.mule.runtime.core.internal.management.stats.DefaultFlowConstructStatistics;
 import org.mule.runtime.core.internal.processor.chain.InterceptedReactiveProcessor;
 import org.mule.runtime.core.internal.processor.strategy.AbstractProcessingStrategy;
 import org.mule.runtime.core.internal.processor.strategy.StreamPerEventSink;
+import org.mule.runtime.core.internal.processor.strategy.TransactionAwareProactorStreamEmitterProcessingStrategyFactory;
 
 import java.util.Optional;
 
@@ -100,6 +102,16 @@ public class DefaultPolicyInstance extends AbstractComponent
     initialiseIfNeeded(sourcePolicyChain, muleContext);
     lifecycleStateManager.fireInitialisePhase((phaseNam, object) -> {
     });
+  }
+
+  private ProcessingStrategyFactory defaultProcessingStrategy() {
+    final ProcessingStrategyFactory defaultProcessingStrategyFactory =
+        getMuleContext().getConfiguration().getDefaultProcessingStrategyFactory();
+    if (defaultProcessingStrategyFactory == null) {
+      return new TransactionAwareProactorStreamEmitterProcessingStrategyFactory();
+    } else {
+      return defaultProcessingStrategyFactory;
+    }
   }
 
   @Override

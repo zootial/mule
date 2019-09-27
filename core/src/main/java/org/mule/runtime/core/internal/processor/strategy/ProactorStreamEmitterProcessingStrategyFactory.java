@@ -36,6 +36,14 @@ import org.mule.runtime.core.api.processor.ReactiveProcessor.ProcessingType;
 import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
 import org.mule.runtime.core.internal.context.thread.notification.ThreadLoggingExecutorServiceDecorator;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntUnaryOperator;
+import java.util.function.Supplier;
+
 import org.slf4j.Logger;
 
 import reactor.core.publisher.EmitterProcessor;
@@ -150,22 +158,46 @@ public class ProactorStreamEmitterProcessingStrategyFactory extends ReactorStrea
     }
 
     @Override
-    protected Flux<CoreEvent> scheduleProcessor(ReactiveProcessor processor, Scheduler processorScheduler, CoreEvent event) {
-      return scheduleWithLogging(processor, processorScheduler, event);
+    protected Mono<CoreEvent> scheduleProcessor(ReactiveProcessor processor, ScheduledExecutorService processorScheduler,
+                                                Mono<CoreEvent> eventFlux) {
+      return scheduleWithLogging(processor, processorScheduler, eventFlux);
     }
 
-    private Flux<CoreEvent> scheduleWithLogging(ReactiveProcessor processor, Scheduler processorScheduler, CoreEvent event) {
+    @Override
+    protected Flux<CoreEvent> scheduleProcessor(ReactiveProcessor processor, ScheduledExecutorService processorScheduler,
+                                                Flux<CoreEvent> eventFlux) {
+      return scheduleWithLogging(processor, processorScheduler, eventFlux);
+    }
+
+    private Mono<CoreEvent> scheduleWithLogging(ReactiveProcessor processor, ScheduledExecutorService processorScheduler,
+                                                Mono<CoreEvent> eventFlux) {
       if (isThreadLoggingEnabled) {
-        return just(event)
+        return Mono.from(eventFlux)
             .flatMap(e -> subscriberContext()
                 .flatMap(ctx -> Mono.just(e).transform(processor)
                     .subscribeOn(fromExecutorService(new ThreadLoggingExecutorServiceDecorator(ctx
                         .getOrEmpty(THREAD_NOTIFICATION_LOGGER_CONTEXT_KEY), decorateScheduler(processorScheduler),
                                                                                                e.getContext().getId())))));
       } else {
-        return just(event)
-            .transform(processor)
-            .subscribeOn(fromExecutorService(decorateScheduler(processorScheduler)));
+        return Mono.from(eventFlux)
+            .publishOn(fromExecutorService(decorateScheduler(processorScheduler)))
+            .transform(processor);
+      }
+    }
+
+    private Flux<CoreEvent> scheduleWithLogging(ReactiveProcessor processor, ScheduledExecutorService processorScheduler,
+                                                Flux<CoreEvent> eventFlux) {
+      if (isThreadLoggingEnabled) {
+        return Flux.from(eventFlux)
+            .flatMap(e -> subscriberContext()
+                .flatMap(ctx -> Mono.just(e).transform(processor)
+                    .subscribeOn(fromExecutorService(new ThreadLoggingExecutorServiceDecorator(ctx
+                        .getOrEmpty(THREAD_NOTIFICATION_LOGGER_CONTEXT_KEY), decorateScheduler(processorScheduler),
+                                                                                               e.getContext().getId())))));
+      } else {
+        return Flux.from(eventFlux)
+            .publishOn(fromExecutorService(decorateScheduler(processorScheduler)))
+            .transform(processor);
       }
     }
 
