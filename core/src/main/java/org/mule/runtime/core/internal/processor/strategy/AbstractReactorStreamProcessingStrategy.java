@@ -19,6 +19,7 @@ import org.mule.runtime.core.internal.processor.strategy.AbstractStreamProcessin
 
 import java.util.function.Supplier;
 
+// Include in patch
 abstract class AbstractReactorStreamProcessingStrategy extends AbstractStreamProcessingStrategy implements Startable, Stoppable {
 
   private final Supplier<Scheduler> cpuLightSchedulerSupplier;
@@ -70,5 +71,10 @@ abstract class AbstractReactorStreamProcessingStrategy extends AbstractStreamPro
 
   protected Scheduler getCpuLightScheduler() {
     return cpuLightScheduler;
+  }
+
+  @Override
+  public String toString() {
+    return super.toString();
   }
 }
