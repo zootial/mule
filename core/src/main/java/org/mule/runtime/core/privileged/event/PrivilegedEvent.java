@@ -6,6 +6,10 @@
  */
 package org.mule.runtime.core.privileged.event;
 
+import static java.lang.Boolean.getBoolean;
+import static org.mule.runtime.core.api.config.MuleProperties.PROPERTY_PREFIX;
+import static org.slf4j.LoggerFactory.getLogger;
+
 import org.mule.api.annotation.NoImplement;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.event.EventContext;
@@ -23,12 +27,12 @@ import org.mule.runtime.core.internal.event.DefaultEventBuilder;
 import org.mule.runtime.core.internal.message.InternalEvent;
 import org.mule.runtime.core.privileged.connector.ReplyToHandler;
 
-import org.slf4j.MDC;
-
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+
+import org.slf4j.Logger;
 
 /**
  * Allows access to the privileged behavior of the {@link Event} implementation.
@@ -37,6 +41,9 @@ import java.util.function.Function;
  */
 @NoImplement
 public interface PrivilegedEvent extends CoreEvent {
+
+  final Logger LOGGER = getLogger(PrivilegedEvent.class);
+  final boolean THREAD_LOCAL_EVENT = getBoolean(PROPERTY_PREFIX + "PrivilegedEvent.setThreadLocalEvent");
 
   public static final String CORRELATION_ID_MDC_KEY = "correlationId";
 
@@ -89,7 +96,13 @@ public interface PrivilegedEvent extends CoreEvent {
    * @return event for currently executing thread.
    */
   static PrivilegedEvent getCurrentEvent() {
-    return CurrentEventHolder.currentEvent.get();
+    final PrivilegedEvent privilegedEvent = CurrentEventHolder.currentEvent.get();
+    if (privilegedEvent == null) {
+      LOGGER
+          .warn("'currentEvent' not set. Either review if this call to PrivilegedEvent.getCurrentEvent() is needed or run with the '"
+              + THREAD_LOCAL_EVENT + "' system property set to 'true'.");
+    }
+    return privilegedEvent;
   }
 
   /**
@@ -99,12 +112,6 @@ public interface PrivilegedEvent extends CoreEvent {
    */
   static void setCurrentEvent(PrivilegedEvent event) {
     CurrentEventHolder.currentEvent.set(event);
-
-    if (event == null) {
-      MDC.remove(CORRELATION_ID_MDC_KEY);
-    } else {
-      MDC.put(CORRELATION_ID_MDC_KEY, event.getCorrelationId());
-    }
   }
 
   /**

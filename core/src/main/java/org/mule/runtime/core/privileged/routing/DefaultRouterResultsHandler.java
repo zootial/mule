@@ -8,7 +8,6 @@ package org.mule.runtime.core.privileged.routing;
 
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
-import static org.mule.runtime.core.privileged.event.PrivilegedEvent.setCurrentEvent;
 
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.core.api.event.CoreEvent;
@@ -86,9 +85,7 @@ public final class DefaultRouterResultsHandler implements RouterResultsHandler {
 
   private CoreEvent createMessageCollectionWithSingleMessage(PrivilegedEvent event) {
     final Message coll = Message.builder().collectionValue(singletonList(event.getMessage()), Message.class).build();
-    event = PrivilegedEvent.builder(event).message(coll).build();
-    setCurrentEvent(event);
-    return event;
+    return PrivilegedEvent.builder(event).message(coll).build();
   }
 
   private CoreEvent createMessageCollection(final List<CoreEvent> nonNullResults,
@@ -105,8 +102,6 @@ public final class DefaultRouterResultsHandler implements RouterResultsHandler {
     }
     final Message coll = Message.builder().collectionValue(list, Message.class).build();
 
-    PrivilegedEvent resultEvent = resultBuilder.message(coll).build();
-    setCurrentEvent(resultEvent);
-    return resultEvent;
+    return resultBuilder.message(coll).build();
   }
 }

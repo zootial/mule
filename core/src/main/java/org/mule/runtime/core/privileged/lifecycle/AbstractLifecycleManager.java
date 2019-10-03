@@ -132,11 +132,6 @@ public abstract class AbstractLifecycleManager<O> implements LifecycleManager {
       callback.onTransition(phase, object);
       setCurrentPhase(phase);
       lastPhaseExecutionFailed = false;
-    }
-    // In the case of a connection exception, trigger the reconnection strategy.
-    catch (ConnectException ce) {
-      lastPhaseExecutionFailed = true;
-      doOnConnectException(ce);
     } catch (LifecycleException le) {
       lastPhaseExecutionFailed = true;
       throw le;
@@ -148,6 +143,11 @@ public abstract class AbstractLifecycleManager<O> implements LifecycleManager {
     }
   }
 
+  /**
+   *
+   * @deprecated since 4.3. No longer needed in Mule 4
+   */
+  @Deprecated
   protected void doOnConnectException(ConnectException ce) throws LifecycleException {
     // empty template method
   }

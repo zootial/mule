@@ -6,8 +6,6 @@
  */
 package org.mule.runtime.core.internal.execution;
 
-import static org.mule.runtime.core.privileged.event.PrivilegedEvent.getCurrentEvent;
-
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.execution.ExecutionCallback;
 import org.mule.runtime.core.api.transaction.TransactionCoordination;
@@ -34,13 +32,6 @@ public class CommitTransactionInterceptor implements ExecutionInterceptor<CoreEv
       try {
         TransactionCoordination.getInstance().resolveTransaction();
       } catch (Exception e) {
-        // Null result only happens when there's a filter in the chain.
-        // Unfortunately a filter causes the whole chain to return null
-        // and there's no other way to retrieve the last event but using the RequestContext.
-        // see https://www.mulesoft.org/jira/browse/MULE-8670
-        if (result == null) {
-          result = getCurrentEvent();
-        }
         throw new MessagingException(result, e);
       }
     }

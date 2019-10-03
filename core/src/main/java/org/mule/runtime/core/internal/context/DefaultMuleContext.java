@@ -46,6 +46,7 @@ import static org.mule.runtime.core.internal.logging.LogUtil.log;
 import static org.mule.runtime.core.internal.util.FunctionalUtils.safely;
 import static org.mule.runtime.core.internal.util.JdkVersionUtils.getSupportedJdks;
 import static org.slf4j.LoggerFactory.getLogger;
+
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.config.custom.CustomizationService;
@@ -78,7 +79,6 @@ import org.mule.runtime.core.api.SingleResourceTransactionFactoryManager;
 import org.mule.runtime.core.api.config.MuleConfiguration;
 import org.mule.runtime.core.api.config.bootstrap.ArtifactType;
 import org.mule.runtime.core.api.config.bootstrap.BootstrapServiceDiscoverer;
-import org.mule.runtime.core.api.connector.ConnectException;
 import org.mule.runtime.core.api.construct.Pipeline;
 import org.mule.runtime.core.api.context.notification.FlowTraceManager;
 import org.mule.runtime.core.api.context.notification.MuleContextListener;
@@ -138,6 +138,7 @@ import javax.inject.Inject;
 import javax.transaction.TransactionManager;
 
 import org.slf4j.Logger;
+
 import reactor.core.publisher.Hooks;
 
 public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMuleContext {
@@ -156,7 +157,7 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
    */
   private static Logger LOGGER = getLogger(DefaultMuleContext.class);
 
-  private CustomizationService customizationService = new DefaultCustomizationService();
+  private final CustomizationService customizationService = new DefaultCustomizationService();
 
   /**
    * Simplified Mule configuration interface
@@ -173,7 +174,7 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
   /**
    * stats used for management
    */
-  private AllStatistics stats = new AllStatistics();
+  private final AllStatistics stats = new AllStatistics();
 
   private volatile SchedulerService schedulerService;
 
@@ -181,7 +182,7 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
    * LifecycleManager for the MuleContext. Note: this is NOT the same lifecycle manager as the one in the Registry.
    */
   private MuleContextLifecycleManager lifecycleManager;
-  private Object lifecycleStateLock = new Object();
+  private final Object lifecycleStateLock = new Object();
 
   private ServerNotificationManager notificationManager;
 
@@ -194,7 +195,7 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
   private long startDate;
 
   private volatile StreamCloserService streamCloserService;
-  private Object streamCloserServiceLock = new Object();
+  private final Object streamCloserServiceLock = new Object();
 
   private ClassLoader executionClassLoader;
 
@@ -208,7 +209,7 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
   private ClusterConfiguration clusterConfiguration = new NullClusterConfiguration();
   private String clusterNodeIdPrefix = "";
 
-  private SingleResourceTransactionFactoryManager singleResourceTransactionFactoryManager =
+  private final SingleResourceTransactionFactoryManager singleResourceTransactionFactoryManager =
       new SingleResourceTransactionFactoryManager();
 
   private LockFactory lockFactory;
@@ -225,16 +226,16 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
 
   private ObjectSerializer objectSerializer;
   private volatile DataTypeConversionResolver dataTypeConversionResolver;
-  private Object dataTypeConversionResolverLock = new Object();
+  private final Object dataTypeConversionResolverLock = new Object();
 
   private volatile FlowTraceManager flowTraceManager;
-  private Object flowTraceManagerLock = new Object();
+  private final Object flowTraceManagerLock = new Object();
 
   private volatile EventContextService eventContextService;
-  private Object eventContextServiceLock = new Object();
+  private final Object eventContextServiceLock = new Object();
 
   private volatile Collection<ExceptionContextProvider> exceptionContextProviders;
-  private Object exceptionContextProvidersLock = new Object();
+  private final Object exceptionContextProvidersLock = new Object();
 
   private TransformationService transformationService;
 
@@ -244,7 +245,7 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
 
   private List<MuleContextListener> listeners = new ArrayList<>();
 
-  private LifecycleInterceptor lifecycleInterceptor = new MuleLifecycleInterceptor();
+  private final LifecycleInterceptor lifecycleInterceptor = new MuleLifecycleInterceptor();
 
   @Inject
   private ComponentInitialStateManager componentInitialStateManager;
@@ -382,8 +383,6 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
   private void startMessageSource(MessageSource messageSource) throws LifecycleException {
     try {
       startIfNeeded(messageSource);
-    } catch (ConnectException e) {
-      exceptionListener.handleException(e);
     } catch (LifecycleException le) {
       throw le;
     } catch (Exception e) {
@@ -816,7 +815,7 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
 
   @Override
   public void handleException(Exception e) {
-    handleException(e, null);
+    getExceptionListener().handleException(e);
   }
 
   @Override

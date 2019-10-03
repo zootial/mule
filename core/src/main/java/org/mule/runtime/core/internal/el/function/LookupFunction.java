@@ -13,6 +13,7 @@ import static java.util.Optional.of;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mule.runtime.api.el.BindingContextUtils.ERROR;
+import static org.mule.runtime.api.el.BindingContextUtils.EVENT_CONTEXT;
 import static org.mule.runtime.api.el.BindingContextUtils.MESSAGE;
 import static org.mule.runtime.api.el.BindingContextUtils.VARS;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
@@ -38,6 +39,7 @@ import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.scheduler.SchedulerService;
 import org.mule.runtime.core.api.construct.Flow;
 import org.mule.runtime.core.api.event.CoreEvent;
+import org.mule.runtime.core.privileged.event.BaseEventContext;
 import org.mule.runtime.core.privileged.event.PrivilegedEvent;
 
 import java.util.List;
@@ -83,7 +85,9 @@ public class LookupFunction implements ExpressionFunction {
         Error incomingError = lookupValue(context, ERROR, null);
 
         Message message = Message.builder(incomingMessage).value(payload).mediaType(APPLICATION_JAVA).build();
-        CoreEvent event = CoreEvent.builder(PrivilegedEvent.getCurrentEvent().getContext())
+        CoreEvent event = CoreEvent.builder(context.lookup(EVENT_CONTEXT)
+            .map(tv -> (BaseEventContext) tv.getValue())
+            .orElse(PrivilegedEvent.getCurrentEvent().getContext()))
             .variables(incomingVariables)
             .error(incomingError)
             .message(message)

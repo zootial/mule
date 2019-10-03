@@ -56,8 +56,8 @@ public class DefaultMuleContextTestCase extends AbstractMuleTestCase {
 
   private static final Logger LOGGER = getLogger(DefaultMuleContextTestCase.class);
 
-  private SystemExceptionHandler mockSystemExceptionHandler = mock(SystemExceptionHandler.class);
-  private MessagingException mockMessagingException = mock(MessagingException.class);
+  private final SystemExceptionHandler mockSystemExceptionHandler = mock(SystemExceptionHandler.class);
+  private final MessagingException mockMessagingException = mock(MessagingException.class);
   @Rule
   public TestServicesConfigurationBuilder testServicesConfigurationBuilder = new TestServicesConfigurationBuilder();
   private MuleContextFactory muleContextFactory;
@@ -103,7 +103,7 @@ public class DefaultMuleContextTestCase extends AbstractMuleTestCase {
     disposeIfNeeded(context.getExceptionListener(), LOGGER);
     context.setExceptionListener(mockSystemExceptionHandler);
     context.handleException(mockMessagingException);
-    verify(mockSystemExceptionHandler, times(1)).handleException(mockMessagingException, null);
+    verify(mockSystemExceptionHandler, times(1)).handleException(mockMessagingException);
   }
 
   @Test

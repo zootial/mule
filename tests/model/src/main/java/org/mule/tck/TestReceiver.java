@@ -8,7 +8,6 @@
 package org.mule.tck;
 
 import static java.lang.Thread.currentThread;
-import static org.mule.runtime.core.privileged.event.PrivilegedEvent.getCurrentEvent;
 
 import org.mule.runtime.api.component.AbstractComponent;
 import org.mule.runtime.api.exception.DefaultMuleException;
@@ -40,8 +39,9 @@ public class TestReceiver extends AbstractComponent implements Processor, MuleCo
 
       return CoreEvent.builder(event)
           .message(Message.builder(message)
-              .value(receive(muleContext.getTransformationService().transform(event.getMessage(), DataType.STRING).getPayload()
-                  .getValue().toString()))
+              .value(receive(event,
+                             muleContext.getTransformationService().transform(event.getMessage(), DataType.STRING).getPayload()
+                                 .getValue().toString()))
               .build())
           .build();
     } catch (Exception e) {
@@ -49,10 +49,10 @@ public class TestReceiver extends AbstractComponent implements Processor, MuleCo
     }
   }
 
-  public String receive(String message) throws Exception {
+  public String receive(CoreEvent event, String message) throws Exception {
     if (logger.isDebugEnabled()) {
       logger.debug("Received: " + message + " Number: " + inc() + " in thread: " + currentThread().getName());
-      logger.debug("Message ID is: " + getCurrentEvent().getCorrelationId());
+      logger.debug("Message ID is: " + event.getCorrelationId());
     }
 
     return "Received: " + message;

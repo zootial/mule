@@ -37,7 +37,6 @@ import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.config.MuleConfiguration;
 import org.mule.runtime.core.api.config.i18n.CoreMessages;
-import org.mule.runtime.core.api.connector.ConnectException;
 import org.mule.runtime.core.api.construct.BackPressureReason;
 import org.mule.runtime.core.api.construct.Pipeline;
 import org.mule.runtime.core.api.event.CoreEvent;
@@ -393,9 +392,6 @@ public abstract class AbstractPipeline extends AbstractFlowConstruct implements 
         if (componentInitialStateManager.mustStartMessageSource(source)) {
           startIfStartable(source);
         }
-      } catch (ConnectException ce) {
-        // Let connection exceptions bubble up to trigger the reconnection strategy.
-        throw ce;
       } catch (Exception e) {
         // If the source couldn't be started we would need to stop the pipeline (if possible) in order to leave
         // its LifecycleManager also as initialise phase so the flow can be disposed later

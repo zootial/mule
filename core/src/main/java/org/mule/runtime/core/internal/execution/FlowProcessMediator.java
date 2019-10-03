@@ -26,7 +26,6 @@ import static org.mule.runtime.core.internal.util.FunctionalUtils.safely;
 import static org.mule.runtime.core.internal.util.InternalExceptionUtils.createErrorEvent;
 import static org.mule.runtime.core.internal.util.message.MessageUtils.toMessage;
 import static org.mule.runtime.core.internal.util.message.MessageUtils.toMessageCollection;
-import static org.mule.runtime.core.privileged.event.PrivilegedEvent.getCurrentEvent;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.applyWithChildContext;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.processToApply;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -497,16 +496,6 @@ public class FlowProcessMediator implements Initialisable {
 
   private void fireNotification(Component source, CoreEvent event, FlowConstruct flow, int action) {
     try {
-      if (event == null) {
-        // Null result only happens when there's a filter in the chain.
-        // Unfortunately a filter causes the whole chain to return null
-        // and there's no other way to retrieve the last event but using the RequestContext.
-        // see https://www.mulesoft.org/jira/browse/MULE-8670
-        event = getCurrentEvent();
-        if (event == null) {
-          return;
-        }
-      }
       notificationHelper.fireNotification(source, event, flow.getLocation(), action);
     } catch (Exception e) {
       if (LOGGER.isWarnEnabled()) {

@@ -17,7 +17,10 @@ import java.util.concurrent.Executor;
 
 /**
  * When this exception is thrown it will trigger a retry (reconnection) policy to go into effect if one is configured.
+ *
+ * @deprecated since 4.3. No longer needed in Mule 4
  */
+@Deprecated
 public class ConnectException extends LocatedMuleException {
 
   /** Serial version */

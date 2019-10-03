@@ -12,7 +12,6 @@ import static org.mule.runtime.core.api.config.i18n.CoreMessages.failedToSchedul
 import static org.mule.runtime.core.api.source.MessageSource.BackPressureStrategy.FAIL;
 import static org.mule.runtime.core.api.util.ClassUtils.withContextClassLoader;
 import static org.mule.runtime.core.internal.component.ComponentUtils.getFromAnnotatedObject;
-import static org.mule.runtime.core.privileged.event.PrivilegedEvent.setCurrentEvent;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import org.mule.runtime.api.component.AbstractComponent;
@@ -140,9 +139,6 @@ public class DefaultSchedulerMessageSource extends AbstractComponent
    * Checks whether polling should take place on this instance.
    */
   private final void run() {
-    // Make sure we start with a clean state.
-    setCurrentEvent(null);
-
     if (muleContext.isPrimaryPollingInstance()) {
       poll();
     }

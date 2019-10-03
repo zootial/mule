@@ -9,9 +9,9 @@ package org.mule.functional.api.event;
 import org.mule.runtime.api.metadata.DataType;
 import org.mule.runtime.core.api.context.notification.ProcessorsTrace;
 import org.mule.runtime.core.api.event.CoreEvent;
-import org.mule.runtime.core.privileged.event.BaseEventContext;
 import org.mule.runtime.core.api.exception.FlowExceptionHandler;
 import org.mule.runtime.core.api.exception.NullExceptionHandler;
+import org.mule.runtime.core.privileged.event.BaseEventContext;
 import org.mule.runtime.core.privileged.event.PrivilegedEvent;
 
 import java.lang.reflect.Field;
@@ -82,12 +82,4 @@ public final class TestLegacyEventUtils {
     return ((PrivilegedEvent) event).getSession().removeProperty(property);
   }
 
-  /**
-   * Return the event associated with the currently executing thread.
-   *
-   * @return event for currently executing thread.
-   */
-  public static CoreEvent getCurrentEvent() {
-    return PrivilegedEvent.getCurrentEvent();
-  }
 }

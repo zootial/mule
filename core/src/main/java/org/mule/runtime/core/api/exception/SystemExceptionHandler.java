@@ -16,7 +16,10 @@ public interface SystemExceptionHandler {
    *
    * @param exception which occurred
    * @param rollbackMethod will be called if transactions are not used in order to achieve atomic message delivery
+   *
+   * @deprecated since 4.3. No longer needed in Mule 4
    */
+  @Deprecated
   void handleException(Exception exception, RollbackSourceCallback rollbackMethod);
 
   /**

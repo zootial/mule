@@ -202,6 +202,11 @@ public interface MuleContext extends Lifecycle {
 
   void setExceptionListener(SystemExceptionHandler exceptionListener);
 
+  /**
+   * 
+   * @deprecated since 4.3. No longer needed in Mule 4
+   */
+  @Deprecated
   void handleException(Exception e, RollbackSourceCallback rollbackMethod);
 
   void handleException(Exception e);

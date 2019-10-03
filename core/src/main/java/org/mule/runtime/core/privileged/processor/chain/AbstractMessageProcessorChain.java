@@ -12,6 +12,7 @@ import static org.apache.commons.lang3.StringUtils.replace;
 import static org.mule.runtime.api.notification.MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE;
 import static org.mule.runtime.api.notification.MessageProcessorNotification.MESSAGE_PROCESSOR_PRE_INVOKE;
 import static org.mule.runtime.api.notification.MessageProcessorNotification.createFrom;
+import static org.mule.runtime.core.api.config.MuleProperties.COMPATIBILITY_PLUGIN_INSTALLED;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.disposeIfNeeded;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.initialiseIfNeeded;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.setMuleContextIfNeeded;
@@ -21,11 +22,15 @@ import static org.mule.runtime.core.api.util.StreamingUtils.updateEventForStream
 import static org.mule.runtime.core.api.util.StringUtils.isBlank;
 import static org.mule.runtime.core.internal.context.DefaultMuleContext.currentMuleContext;
 import static org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger.THREAD_NOTIFICATION_LOGGER_CONTEXT_KEY;
+import static org.mule.runtime.core.privileged.event.PrivilegedEvent.CORRELATION_ID_MDC_KEY;
+import static org.mule.runtime.core.privileged.event.PrivilegedEvent.THREAD_LOCAL_EVENT;
 import static org.mule.runtime.core.privileged.event.PrivilegedEvent.setCurrentEvent;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.processToApply;
 import static org.slf4j.LoggerFactory.getLogger;
 import static reactor.core.publisher.Flux.from;
 import static reactor.core.publisher.Operators.lift;
+
+import org.mule.runtime.api.artifact.Registry;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.exception.MuleRuntimeException;
@@ -67,6 +72,8 @@ import javax.inject.Inject;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
+import org.slf4j.MDC;
+
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
@@ -88,12 +95,16 @@ abstract class AbstractMessageProcessorChain extends AbstractExecutableComponent
   private static final Logger LOGGER = getLogger(AbstractMessageProcessorChain.class);
 
   private static final Consumer<Context> TCCL_REACTOR_CTX_CONSUMER =
-      context -> context.getOrEmpty(TCCL_REACTOR_CTX_KEY)
-          .ifPresent(cl -> currentThread().setContextClassLoader((ClassLoader) cl));
+      context -> setTcclFromReactorContext(context, TCCL_REACTOR_CTX_KEY);
 
   private static final Consumer<Context> TCCL_ORIGINAL_REACTOR_CTX_CONSUMER =
-      context -> context.getOrEmpty(TCCL_ORIGINAL_REACTOR_CTX_KEY)
-          .ifPresent(cl -> currentThread().setContextClassLoader((ClassLoader) cl));
+      context -> setTcclFromReactorContext(context, TCCL_ORIGINAL_REACTOR_CTX_KEY);
+
+  private static void setTcclFromReactorContext(Context context, final String tcclCtxKey) {
+    if (context.hasKey(tcclCtxKey)) {
+      currentThread().setContextClassLoader((ClassLoader) context.get(tcclCtxKey));
+    }
+  }
 
   static {
     try {
@@ -109,6 +120,7 @@ abstract class AbstractMessageProcessorChain extends AbstractExecutableComponent
   private final List<Processor> processors;
   private final ProcessingStrategy processingStrategy;
   private final List<ReactiveInterceptorAdapter> additionalInterceptors = new LinkedList<>();
+  private boolean compatibilityPluginInstalled;
 
   @Inject
   private InterceptorManager processorInterceptorManager;
@@ -118,6 +130,10 @@ abstract class AbstractMessageProcessorChain extends AbstractExecutableComponent
 
   @Inject
   private ThreadNotificationService threadNotificationService;
+
+  @Inject
+  private Registry registry;
+
   private ThreadNotificationLogger threadNotificationLogger;
 
   AbstractMessageProcessorChain(String name, Optional<ProcessingStrategy> processingStrategyOptional,
@@ -236,17 +252,24 @@ abstract class AbstractMessageProcessorChain extends AbstractExecutableComponent
     List<BiFunction<Processor, ReactiveProcessor, ReactiveProcessor>> interceptors = new ArrayList<>();
 
     // Set thread context
+
+    // #1 Update TCCL with the one from the Region of the processor to execute once in execution thread.
     interceptors.add((processor, next) -> stream -> from(stream)
-        // #2 Wrap execution, after processing strategy, on processor execution thread.
-        .doOnNext(event -> {
-          currentMuleContext.set(muleContext);
-          setCurrentEvent((PrivilegedEvent) event);
-        })
-        // #1 Update TCCL with the one from the Region of the processor to execute once in execution thread.
+        .doOnNext(event -> MDC.put(CORRELATION_ID_MDC_KEY, event.getCorrelationId()))
         .transform(doOnNextOrErrorWithContext(TCCL_REACTOR_CTX_CONSUMER)
             .andThen(next)
             // #1 Set back previous TCCL.
             .andThen(doOnNextOrErrorWithContext(TCCL_ORIGINAL_REACTOR_CTX_CONSUMER))));
+    if (compatibilityPluginInstalled || THREAD_LOCAL_EVENT) {
+      // #2 Wrap execution, after processing strategy, on processor execution thread.
+      interceptors.add((processor, next) -> stream -> from(stream)
+          .doOnNext(event -> {
+            currentMuleContext.set(muleContext);
+            setCurrentEvent((PrivilegedEvent) event);
+          })
+          .transform(next)
+          .doOnNext(result -> setCurrentEvent((PrivilegedEvent) result)));
+    }
 
     // Apply processing strategy. This is done here to ensure notifications and interceptors do not execute on async processor
     // threads which may be limited to avoid deadlocks.
@@ -273,7 +296,6 @@ abstract class AbstractMessageProcessorChain extends AbstractExecutableComponent
         .transform(next)
         .map(result -> {
           postNotification(processor).accept(result);
-          setCurrentEvent((PrivilegedEvent) result);
           // If the processor returns a CursorProvider, then have the StreamingManager manage it
           return updateEventForStreaming(streamingManager).apply(result);
         }));
@@ -426,6 +448,8 @@ abstract class AbstractMessageProcessorChain extends AbstractExecutableComponent
 
   @Override
   public void initialise() throws InitialisationException {
+    compatibilityPluginInstalled = registry.lookupByName(COMPATIBILITY_PLUGIN_INSTALLED).isPresent();
+
     processorInterceptorManager.getInterceptorFactories().stream().forEach(interceptorFactory -> {
       ReactiveInterceptorAdapter reactiveInterceptorAdapter = new ReactiveInterceptorAdapter(interceptorFactory);
       try {
