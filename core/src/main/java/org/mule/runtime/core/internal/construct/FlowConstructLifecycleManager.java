@@ -6,12 +6,15 @@
  */
 package org.mule.runtime.core.internal.construct;
 
+import static java.lang.Thread.currentThread;
 import static org.mule.runtime.api.notification.FlowConstructNotification.FLOW_CONSTRUCT_DISPOSED;
 import static org.mule.runtime.api.notification.FlowConstructNotification.FLOW_CONSTRUCT_INITIALISED;
 import static org.mule.runtime.api.notification.FlowConstructNotification.FLOW_CONSTRUCT_STARTED;
 import static org.mule.runtime.api.notification.FlowConstructNotification.FLOW_CONSTRUCT_STOPPED;
+import static org.mule.runtime.core.api.util.ClassUtils.withContextClassLoader;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import org.mule.runtime.api.exception.DefaultMuleException;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.lifecycle.Disposable;
 import org.mule.runtime.api.lifecycle.Initialisable;
@@ -44,27 +47,36 @@ public class FlowConstructLifecycleManager extends SimpleLifecycleManager<FlowCo
 
   @Override
   public synchronized void fireInitialisePhase(LifecycleCallback<FlowConstruct> callback) throws MuleException {
-    checkPhase(Initialisable.PHASE_NAME);
-    // TODO No pre notification
-    if (logger.isInfoEnabled()) {
-      logger.info("Initialising flow: " + getLifecycleObject().getName());
-    }
-    invokePhase(Initialisable.PHASE_NAME, getLifecycleObject(), callback);
-    fireNotification(FLOW_CONSTRUCT_INITIALISED);
+    withContextClassLoader(currentThread().getContextClassLoader().getParent(), () -> {
+      checkPhase(Initialisable.PHASE_NAME);
+      // TODO No pre notification
+      if (logger.isInfoEnabled()) {
+        logger.info("Initialising flow: " + getLifecycleObject().getName());
+      }
+      invokePhase(Initialisable.PHASE_NAME, getLifecycleObject(), callback);
+      fireNotification(FLOW_CONSTRUCT_INITIALISED);
+      return null;
+    }, MuleException.class, e -> {
+      throw new DefaultMuleException(e);
+    });
   }
 
 
   @Override
   public synchronized void fireStartPhase(LifecycleCallback<FlowConstruct> callback) throws MuleException {
-    checkPhase(Startable.PHASE_NAME);
-    if (logger.isInfoEnabled()) {
-      logger.info("Starting flow: " + getLifecycleObject().getName());
-    }
-    // TODO No pre notification
-    invokePhase(Startable.PHASE_NAME, getLifecycleObject(), callback);
-    fireNotification(FLOW_CONSTRUCT_STARTED);
+    withContextClassLoader(currentThread().getContextClassLoader().getParent(), () -> {
+      checkPhase(Startable.PHASE_NAME);
+      if (logger.isInfoEnabled()) {
+        logger.info("Starting flow: " + getLifecycleObject().getName());
+      }
+      // TODO No pre notification
+      invokePhase(Startable.PHASE_NAME, getLifecycleObject(), callback);
+      fireNotification(FLOW_CONSTRUCT_STARTED);
+      return null;
+    }, MuleException.class, e -> {
+      throw new DefaultMuleException(e);
+    });
   }
-
 
   @Override
   public synchronized void fireStopPhase(LifecycleCallback<FlowConstruct> callback) throws MuleException {
