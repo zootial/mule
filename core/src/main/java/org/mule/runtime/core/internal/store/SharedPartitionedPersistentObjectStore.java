@@ -40,7 +40,6 @@ public class SharedPartitionedPersistentObjectStore<T extends Serializable> exte
    */
   public SharedPartitionedPersistentObjectStore(File workingDirectory) {
     checkArgument(workingDirectory != null, "workingDirectory cannot be null");
-    checkArgument(lockFactory != null, "lockFactory cannot be null");
     this.workingDirectory = workingDirectory;
   }
 
