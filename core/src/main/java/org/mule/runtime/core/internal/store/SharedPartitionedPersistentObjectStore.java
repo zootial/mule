@@ -7,9 +7,15 @@
 package org.mule.runtime.core.internal.store;
 
 import static org.mule.runtime.api.util.Preconditions.checkArgument;
+import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_LOCK_FACTORY;
+
+import org.mule.runtime.api.lock.LockFactory;
 
 import java.io.File;
 import java.io.Serializable;
+
+import javax.inject.Inject;
+import javax.inject.Named;
 
 /**
  * Extends {@link PartitionedPersistentObjectStore} in order to allow using a shared path where OS data will be persisted.
@@ -23,6 +29,10 @@ public class SharedPartitionedPersistentObjectStore<T extends Serializable> exte
 
   private File workingDirectory;
 
+  @Inject
+  @Named(OBJECT_LOCK_FACTORY)
+  private LockFactory lockFactory;
+
   /**
    * Creates a shared partitioned persistent object store.
    *
@@ -30,6 +40,7 @@ public class SharedPartitionedPersistentObjectStore<T extends Serializable> exte
    */
   public SharedPartitionedPersistentObjectStore(File workingDirectory) {
     checkArgument(workingDirectory != null, "workingDirectory cannot be null");
+    checkArgument(lockFactory != null, "lockFactory cannot be null");
     this.workingDirectory = workingDirectory;
   }
 
