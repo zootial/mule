@@ -180,7 +180,8 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
     String sharedPartitionatedPersistentObjectStorePath = artifactProperties.get(SHARED_PARTITIONED_PERSISTENT_OBJECT_STORE_PATH);
 
-    Supplier<LockFactory> sharedToolingClientLockFactorySupplier = (Supplier<LockFactory>) muleContext.getDeploymentProperties().get(SHARED_TOOLING_SERVICE_LOCK_FACTORY_SUPPLIER);
+    Supplier<LockFactory> sharedToolingClientLockFactorySupplier =
+        (Supplier<LockFactory>) muleContext.getDeploymentProperties().get(SHARED_TOOLING_SERVICE_LOCK_FACTORY_SUPPLIER);
     if (sharedPartitionatedPersistentObjectStorePath != null && sharedToolingClientLockFactorySupplier != null) {
       customizationService.overrideDefaultServiceImpl(OBJECT_LOCK_FACTORY,
                                                       new LazySharedLockFactory(sharedToolingClientLockFactorySupplier));
