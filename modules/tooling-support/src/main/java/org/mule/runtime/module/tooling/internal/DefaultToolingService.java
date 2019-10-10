@@ -16,6 +16,7 @@ import static java.util.Optional.of;
 import static org.apache.commons.io.FileUtils.deleteQuietly;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.mule.runtime.config.internal.LazyMuleArtifactContext.SHARED_PARTITIONED_PERSISTENT_OBJECT_STORE_PATH;
+import static org.mule.runtime.config.internal.LazyMuleArtifactContext.SHARED_TOOLING_SERVICE_LOCK_FACTORY_SUPPLIER;
 import static org.mule.runtime.container.api.MuleFoldersUtil.getAppDataFolder;
 import static org.mule.runtime.container.api.MuleFoldersUtil.getExecutionFolder;
 import static org.mule.runtime.core.api.config.MuleDeploymentProperties.MULE_FORCE_TOOLING_APP_LOGS_DEPLOYMENT_PROPERTY;
@@ -29,7 +30,9 @@ import org.mule.runtime.api.deployment.meta.MuleApplicationModel;
 import org.mule.runtime.api.deployment.meta.MuleArtifactLoaderDescriptor;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.lifecycle.InitialisationException;
+import org.mule.runtime.api.lock.LockFactory;
 import org.mule.runtime.core.api.util.UUID;
+import org.mule.runtime.core.internal.lock.MuleLockFactory;
 import org.mule.runtime.deployment.model.api.application.Application;
 import org.mule.runtime.deployment.model.api.application.ApplicationDescriptor;
 import org.mule.runtime.deployment.model.api.domain.Domain;
@@ -52,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,8 +83,11 @@ public class DefaultToolingService implements ToolingService {
   private final DefaultApplicationFactory applicationFactory;
   private final ToolingApplicationDescriptorFactory applicationDescriptorFactory;
 
+  private final Supplier<LockFactory> toolingLazyLockFactorySupplier;
+
   private File toolingServiceAppsFolder;
   private ArtifactFileWriter artifactFileWriter;
+
 
   /**
    * @param domainRepository {@link DomainRepository} to look up for already deployed domains.
@@ -96,6 +103,7 @@ public class DefaultToolingService implements ToolingService {
     this.domainFactory = domainFactory;
     this.applicationFactory = applicationFactory;
     this.applicationDescriptorFactory = applicationDescriptorFactory;
+    this.toolingLazyLockFactorySupplier = MuleLockFactory::new;
   }
 
   /**
@@ -266,6 +274,7 @@ public class DefaultToolingService implements ToolingService {
     properties.setProperty(MULE_MUTE_APP_LOGS_DEPLOYMENT_PROPERTY,
                            String.valueOf(!valueOf(getProperty(MULE_FORCE_TOOLING_APP_LOGS_DEPLOYMENT_PROPERTY, "false"))));
     properties.setProperty(SHARED_PARTITIONED_PERSISTENT_OBJECT_STORE_PATH, getToolingWorkingDir().getAbsolutePath());
+    properties.put(SHARED_TOOLING_SERVICE_LOCK_FACTORY_SUPPLIER, this.toolingLazyLockFactorySupplier);
     return properties;
   }
 

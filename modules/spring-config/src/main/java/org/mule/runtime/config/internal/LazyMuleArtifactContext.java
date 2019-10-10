@@ -32,6 +32,7 @@ import static org.mule.runtime.config.internal.LazyConnectivityTestingService.NO
 import static org.mule.runtime.config.internal.LazyValueProviderService.NON_LAZY_VALUE_PROVIDER_SERVICE;
 import static org.mule.runtime.config.internal.parsers.generic.AutoIdUtils.uniqueValue;
 import static org.mule.runtime.core.api.config.MuleDeploymentProperties.MULE_LAZY_INIT_DEPLOYMENT_PROPERTY;
+import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_LOCK_FACTORY;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_MULE_CONFIGURATION;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_SECURITY_MANAGER;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.initialiseIfNeeded;
@@ -47,6 +48,7 @@ import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.lifecycle.Initialisable;
 import org.mule.runtime.api.lifecycle.InitialisationException;
 import org.mule.runtime.api.lifecycle.Startable;
+import org.mule.runtime.api.lock.LockFactory;
 import org.mule.runtime.api.metadata.MetadataService;
 import org.mule.runtime.api.util.Pair;
 import org.mule.runtime.api.value.ValueProviderService;
@@ -86,6 +88,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
@@ -107,6 +110,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
     implements LazyComponentInitializerAdapter, ComponentModelInitializer {
 
   public static final String SHARED_PARTITIONED_PERSISTENT_OBJECT_STORE_PATH = "_sharedPartitionatedPersistentObjectStorePath";
+  public static final String SHARED_TOOLING_SERVICE_LOCK_FACTORY_SUPPLIER = "_sharedToolingServiceLockFactorySupplier";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LazyMuleArtifactContext.class);
 
@@ -150,6 +154,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
     graph = generateFor(applicationModel);
 
+
     this.parentComponentModelInitializer = parentComponentModelInitializer;
 
     final CustomizationService customizationService = muleContext.getCustomizationService();
@@ -174,7 +179,11 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
     customizationService.overrideDefaultServiceImpl(LAZY_COMPONENT_INITIALIZER_SERVICE_KEY, this);
 
     String sharedPartitionatedPersistentObjectStorePath = artifactProperties.get(SHARED_PARTITIONED_PERSISTENT_OBJECT_STORE_PATH);
-    if (sharedPartitionatedPersistentObjectStorePath != null) {
+
+    Supplier<LockFactory> sharedToolingClientLockFactorySupplier = (Supplier<LockFactory>) muleContext.getDeploymentProperties().get(SHARED_TOOLING_SERVICE_LOCK_FACTORY_SUPPLIER);
+    if (sharedPartitionatedPersistentObjectStorePath != null && sharedToolingClientLockFactorySupplier != null) {
+      customizationService.overrideDefaultServiceImpl(OBJECT_LOCK_FACTORY,
+                                                      new LazySharedLockFactory(sharedToolingClientLockFactorySupplier));
       customizationService.overrideDefaultServiceImpl(BASE_PERSISTENT_OBJECT_STORE_KEY,
                                                       new SharedPartitionedPersistentObjectStore<>(new File(sharedPartitionatedPersistentObjectStorePath)));
 
