@@ -827,7 +827,7 @@ public class ApplicationModel implements ArtifactAst {
           }
         }
         existingObjectsWithName.put(nameAttributeValue, componentModel);
-        componentModel.setParameter(ApplicationModel.NAME_ATTRIBUTE, componentBuildingDefinition.getRegistrationName());
+        // componentModel.setParameter(ApplicationModel.NAME_ATTRIBUTE, componentBuildingDefinition.getRegistrationName());
       }
     }));
   }
@@ -1113,7 +1113,7 @@ public class ApplicationModel implements ArtifactAst {
   private void resolveRegistrationNames() {
     executeOnEveryRootElementWithBuildingDefinition((componentModel, componentBuildingDefinition) -> {
       if (componentBuildingDefinition.getRegistrationName() != null) {
-        componentModel.setParameter(NAME_ATTRIBUTE, componentBuildingDefinition.getRegistrationName());
+        // componentModel.setParameter(NAME_ATTRIBUTE, componentBuildingDefinition.getRegistrationName());
       }
     });
   }

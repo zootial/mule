@@ -166,14 +166,6 @@ public abstract class ComponentModel {
   }
 
   /**
-   * @param parameterName name of the configuration parameter.
-   * @param value value contained by the configuration parameter.
-   */
-  public void setParameter(String parameterName, String value) {
-    this.parameters.put(parameterName, value);
-  }
-
-  /**
    * @return the type of the object to be created when processing this {@code ComponentModel}.
    */
   public Class<?> getType() {
