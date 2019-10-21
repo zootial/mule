@@ -80,6 +80,7 @@ public class SimpleRetryPolicy implements RetryPolicy {
 
         reactor.core.scheduler.Scheduler reactorRetryScheduler =
             fromExecutorService(new ConditionalExecutorServiceDecorator(retryScheduler, s -> isTransactionActive()));
+        
 
         Mono<T> retryMono = from(publisher)
             .retryWhen(retry.withBackoffScheduler(reactorRetryScheduler)
