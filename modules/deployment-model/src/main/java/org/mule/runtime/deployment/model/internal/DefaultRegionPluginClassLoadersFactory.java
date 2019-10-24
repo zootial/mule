@@ -7,12 +7,16 @@
 
 package org.mule.runtime.deployment.model.internal;
 
+import static java.lang.Boolean.valueOf;
+import static java.lang.System.getProperty;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.mule.runtime.api.util.Preconditions.checkArgument;
 import static org.mule.runtime.deployment.model.api.plugin.ArtifactPluginDescriptor.MULE_PLUGIN_CLASSIFIER;
+import static org.mule.runtime.module.artifact.api.classloader.ChildFirstLookupStrategy.CHILD_FIRST;
 import static org.mule.runtime.module.artifact.api.classloader.ChildOnlyLookupStrategy.CHILD_ONLY;
 import static org.mule.runtime.module.artifact.api.classloader.ParentFirstLookupStrategy.PARENT_FIRST;
+
 import org.mule.runtime.container.api.ModuleRepository;
 import org.mule.runtime.container.api.MuleModule;
 import org.mule.runtime.container.internal.ContainerOnlyLookupStrategy;
@@ -138,6 +142,12 @@ public class DefaultRegionPluginClassLoadersFactory implements RegionPluginClass
           pluginsLookupPolicies.put(packageName, containerOnlyLookupStrategy);
         }
       }
+    }
+
+    boolean allowJreOverride = valueOf(getProperty("mule.classloading.allowJreOverride", "false"));
+    if (allowJreOverride) {
+      descriptor.getClassLoaderModel().getExportedPackages()
+          .forEach(packageName -> pluginsLookupPolicies.put(packageName, CHILD_FIRST));
     }
 
     return baseLookupPolicy.extend(pluginsLookupPolicies);

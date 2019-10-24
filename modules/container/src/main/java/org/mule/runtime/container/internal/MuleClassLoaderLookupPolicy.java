@@ -7,6 +7,8 @@
 
 package org.mule.runtime.container.internal;
 
+import static java.lang.Boolean.valueOf;
+import static java.lang.System.getProperty;
 import static org.apache.commons.lang3.ClassUtils.getPackageName;
 import static org.mule.runtime.api.util.Preconditions.checkArgument;
 import static org.mule.runtime.module.artifact.api.classloader.ChildFirstLookupStrategy.CHILD_FIRST;
@@ -121,8 +123,17 @@ public class MuleClassLoaderLookupPolicy implements ClassLoaderLookupPolicy {
     validateLookupPolicies(lookupStrategies);
     final Map<String, LookupStrategy> newLookupStrategies = new HashMap<>(this.configuredLookupStrategies);
 
+    boolean allowJreOverride = valueOf(getProperty("mule.classloading.allowJreOverride", "false"));
+
     for (String packageName : lookupStrategies.keySet()) {
+      boolean addStrategy;
       if (!newLookupStrategies.containsKey(normalizePackageName(packageName))) {
+        addStrategy = true;
+      } else {
+        addStrategy = allowJreOverride;
+      }
+
+      if (addStrategy) {
         newLookupStrategies.put(packageName, lookupStrategies.get(packageName));
       }
     }
