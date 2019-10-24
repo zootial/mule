@@ -1,7 +1,7 @@
 def UPSTREAM_PROJECTS_LIST = ["Mule-runtime/mule-common/3.5.x"]
 
 Map pipelineParams = ["upstreamProjects"           : UPSTREAM_PROJECTS_LIST.join(','),
-                      "jdkTool"                    : "JDK7",
+                      "jdkTool"                    : "JDK8",
                       "mavenTool"                  : "M3",
                       "enableAllureTestReportStage": false,
                       "enableSonarQubeStage"       : false,
