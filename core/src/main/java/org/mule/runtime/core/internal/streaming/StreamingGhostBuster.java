@@ -7,6 +7,7 @@
 package org.mule.runtime.core.internal.streaming;
 
 
+import static java.lang.System.identityHashCode;
 import static java.lang.Thread.currentThread;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -100,6 +101,7 @@ public class StreamingGhostBuster implements Lifecycle {
       try {
         StreamingWeakReference ghost = (StreamingWeakReference) referenceQueue.remove(POLL_INTERVAL);
         if (ghost != null) {
+          LOGGER.warn("Busting provider" + identityHashCode(ghost.get()));
           bust(ghost);
         }
       } catch (InterruptedException e) {

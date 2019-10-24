@@ -8,6 +8,7 @@ package org.mule.runtime.core.internal.streaming;
 
 import static java.lang.System.identityHashCode;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.streaming.Cursor;
@@ -17,6 +18,7 @@ import org.mule.runtime.api.streaming.object.CursorIteratorProvider;
 import org.mule.runtime.core.internal.streaming.bytes.ManagedCursorStreamProvider;
 import org.mule.runtime.core.internal.streaming.object.ManagedCursorIteratorProvider;
 import org.mule.runtime.core.privileged.event.BaseEventContext;
+import org.slf4j.Logger;
 
 import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,6 +33,8 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
  * @since 4.0
  */
 public class CursorManager {
+
+  private static final Logger LOGGER = getLogger(CursorManager.class);
 
   private final LoadingCache<BaseEventContext, EventStreamingState> registry =
       Caffeine.newBuilder()
@@ -57,7 +61,7 @@ public class CursorManager {
    * Becomes aware of the given {@code provider} and returns a replacement provider which is managed by the runtime, allowing for
    * automatic resource handling
    *
-   * @param provider     the provider to be tracked
+   * @param provider the provider to be tracked
    * @param ownerContext the root context of the event that created the provider
    * @return a {@link CursorProvider}
    */
@@ -88,6 +92,8 @@ public class CursorManager {
     private final Cache<Integer, WeakReference<ManagedCursorProvider>> providers = Caffeine.newBuilder().build();
 
     private ManagedCursorProvider addProvider(ManagedCursorProvider provider) {
+      LOGGER.warn("Adding hash to provider (CursorManager.addProvider): " + identityHashCode(provider.getDelegate()));
+      LOGGER.warn("Hash of decorator " + identityHashCode(provider));
       return providers.get(identityHashCode(provider.getDelegate()), hash -> ghostBuster.track(provider)).get();
     }
 
@@ -96,6 +102,8 @@ public class CursorManager {
         providers.asMap().forEach((hash, weakReference) -> {
           ManagedCursorProvider provider = weakReference.get();
           if (provider != null) {
+            LOGGER.warn("Disposing provider" + identityHashCode(provider));
+            LOGGER.warn("Disposing provider delegate" + identityHashCode(provider.getDelegate()));
             weakReference.clear();
             provider.releaseResources();
           }
