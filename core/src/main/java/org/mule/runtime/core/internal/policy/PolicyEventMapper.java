@@ -20,6 +20,7 @@ import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.policy.SourcePolicyParametersTransformer;
+import org.mule.runtime.core.internal.exception.MessagingException;
 import org.mule.runtime.core.internal.message.InternalEvent;
 import org.mule.runtime.core.privileged.event.PrivilegedEvent;
 
@@ -206,21 +207,26 @@ public class PolicyEventMapper {
    * @param parametersTransformer does the transformation from flow's response parameters into a {@link Message}.
    */
   public CoreEvent onFlowFinish(CoreEvent flowResult,
-                                Optional<SourcePolicyParametersTransformer> parametersTransformer) {
-    Map<String, Object> originalResponseParameters =
-        getResponseParamsProcessor(flowResult)
-            .getSuccessfulExecutionResponseParametersFunction()
-            .apply(flowResult);
+                                Optional<SourcePolicyParametersTransformer> parametersTransformer)
+      throws MessagingException {
+    try {
+      Map<String, Object> originalResponseParameters =
+          getResponseParamsProcessor(flowResult)
+              .getSuccessfulExecutionResponseParametersFunction()
+              .apply(flowResult);
 
-    Message message =
-        parametersTransformer
-            .map(t -> t.fromSuccessResponseParametersToMessage(originalResponseParameters))
-            .orElseGet(flowResult::getMessage);
+      Message message =
+          parametersTransformer
+              .map(t -> t.fromSuccessResponseParametersToMessage(originalResponseParameters))
+              .orElseGet(flowResult::getMessage);
 
-    return InternalEvent.builder(flowResult)
-        .message(message)
-        .addInternalParameter(POLICY_SOURCE_ORIGINAL_RESPONSE_PARAMETERS, originalResponseParameters)
-        .build();
+      return InternalEvent.builder(flowResult)
+          .message(message)
+          .addInternalParameter(POLICY_SOURCE_ORIGINAL_RESPONSE_PARAMETERS, originalResponseParameters)
+          .build();
+    } catch (Exception e) {
+      throw new MessagingException(flowResult, e);
+    }
   }
 
   /**
