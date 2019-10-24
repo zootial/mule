@@ -15,7 +15,6 @@ import java.util.function.Supplier;
 public class DelegateMetadataCacheManager implements MetadataCacheManager, Initialisable {
 
   private Supplier<MetadataCacheManager> metadataCacheManagerSupplier;
-
   private MetadataCacheManager metadataCacheManagerDelegate;
 
   public DelegateMetadataCacheManager(Supplier<MetadataCacheManager> metadataCacheManagerSupplier) {

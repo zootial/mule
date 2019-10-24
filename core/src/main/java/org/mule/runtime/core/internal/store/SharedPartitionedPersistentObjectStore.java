@@ -10,9 +10,13 @@ import static org.mule.runtime.api.util.Preconditions.checkArgument;
 
 import org.mule.runtime.api.lock.LockFactory;
 import org.mule.runtime.api.store.ObjectStoreException;
+import org.mule.runtime.core.internal.util.store.PersistentObjectStorePartition;
+import org.mule.runtime.core.internal.util.store.PersistentObjectStorePartitionData;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -27,6 +31,21 @@ public class SharedPartitionedPersistentObjectStore<T extends Serializable> exte
 
   public static final String SHARED_PERSISTENT_OBJECT_STORE_KEY = "_defaultSharedPersistentObjectStore";
 
+  private static Map<String, PersistentObjectStorePartition> partitionsByName =
+      new ConcurrentHashMap<String, PersistentObjectStorePartition>() {
+
+        @Override
+        public PersistentObjectStorePartition put(String key, PersistentObjectStorePartition value) {
+          return super.put(key, new PersistentObjectStorePartitionData(value.getPartitionName(), value.getPartitionDirectory()));
+        }
+
+        @Override
+        public PersistentObjectStorePartition putIfAbsent(String key, PersistentObjectStorePartition value) {
+          return super.putIfAbsent(key, new PersistentObjectStorePartitionData(value.getPartitionName(),
+                                                                               value.getPartitionDirectory()));
+        }
+      };
+
   private File workingDirectory;
   private Lock lock;
 
@@ -37,9 +56,18 @@ public class SharedPartitionedPersistentObjectStore<T extends Serializable> exte
    * @param lockFactory {@link LockFactory} an external lock factory to synchronize the access to this partitioned persistent object store.
    */
   public SharedPartitionedPersistentObjectStore(File workingDirectory, LockFactory lockFactory) {
+    super(partitionsByName);
     checkArgument(workingDirectory != null, "workingDirectory cannot be null");
     this.workingDirectory = workingDirectory;
     this.lock = lockFactory.createLock(getWorkingDirectory());
+  }
+
+  @Override
+  protected PersistentObjectStorePartition<T> getPartitionObjectStore(String partitionName) throws ObjectStoreException {
+    PersistentObjectStorePartition<T> partitionObjectStore = super.getPartitionObjectStore(partitionName);
+    // Create a new PersistentObjectStorePartition that references to the current muleContext to deserialize an entry that was added
+    // by another muleContext (serialization)
+    return new PersistentObjectStorePartition<>(muleContext, partitionName, partitionObjectStore.getPartitionDirectory());
   }
 
   @Override
@@ -67,6 +95,26 @@ public class SharedPartitionedPersistentObjectStore<T extends Serializable> exte
     lock.lock();
     try {
       return super.doRemove(key, partitionName);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  @Override
+  public void expire(long entryTTL, int maxEntries) throws ObjectStoreException {
+    lock.lock();
+    try {
+      super.expire(entryTTL, maxEntries);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  @Override
+  public void expire(long entryTTL, int maxEntries, String partitionName) throws ObjectStoreException {
+    lock.lock();
+    try {
+      super.expire(entryTTL, maxEntries, partitionName);
     } finally {
       lock.unlock();
     }
