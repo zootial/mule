@@ -186,9 +186,8 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
       osm.setBaseTransientStoreKey(BASE_IN_MEMORY_OBJECT_STORE_KEY);
       try {
         this.muleContext.getRegistry().registerObject(LAZY_MULE_OBJECT_STORE_MANAGER, osm);
-      }
-      catch (RegistrationException e) {
-        throw new RuntimeException(e);
+      } catch (RegistrationException e) {
+        throw new MuleRuntimeException(e);
       }
 
       muleContext.getCustomizationService().registerCustomServiceClass(DEFAULT_METADATA_CACHE_MANAGER_KEY,
@@ -202,9 +201,9 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
                                                                          defaultPersistentMetadataCacheManager
                                                                              .setLockFactory(runtimeLockFactory);
                                                                          defaultPersistentMetadataCacheManager
-                                                                                 .setObjectStoreManager(getRegistry()
-                                                                                                                .<ObjectStoreManager>lookupByName(LAZY_MULE_OBJECT_STORE_MANAGER)
-                                                                                                                .get());
+                                                                             .setObjectStoreManager(getRegistry()
+                                                                                 .<ObjectStoreManager>lookupByName(LAZY_MULE_OBJECT_STORE_MANAGER)
+                                                                                 .get());
                                                                          return defaultPersistentMetadataCacheManager;
                                                                        }));
     }

@@ -18,6 +18,7 @@ import java.util.Map;
 /**
  * An implementation that only references the partitionName and partitionDirectory so it can be shared between different
  * muleContext and uses by {@link org.mule.runtime.core.internal.store.SharedPartitionedPersistentObjectStore}.
+ * Only Tooling should use this in order to share object store state between different deployments.
  *
  * @param <T>
  */
