@@ -684,7 +684,8 @@ public class AbstractXmlExtensionLoaderDelegate {
     ExtensionModelHelper extensionModelHelper = new ExtensionModelHelper(extensions);
     Consumer<ComponentModel> processExternalizableParameters = globalElement -> {
       String externalizableParameter = globalElement.getParameters().get("doc:externalize");
-      final List<String> externalizableParameters = externalizableParameter == null ? emptyList() : asList(externalizableParameter.split(","));
+      final List<String> externalizableParameters =
+          externalizableParameter == null ? emptyList() : asList(externalizableParameter.split(","));
 
       Optional<ParameterizedModel> extensionComponentModel =
           lookupModel(globalElement, extensions, extensionModelHelper);

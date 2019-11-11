@@ -779,7 +779,11 @@ public class MacroExpansionModuleModel {
             //TODO PLG we have to reset the component identifier to use the one from the extensions being used by the module because of the wrapper elements created by the SDK. We need to review if the wrapper should have the namespace of the module or the real extension.
             globalElementReplacementModel
                 .addChildComponentModel(copyGlobalElementComponentModel(configRefModel, pair.getFirst(), configRefName,
-                                                                        moduleGlobalElementsNames, literalsParameters, of(builder().name(pair.getFirst().getIdentifier().getName()).namespace(modelToCopy.getIdentifier().getNamespace()).build())));
+                                                                        moduleGlobalElementsNames, literalsParameters,
+                                                                        of(builder()
+                                                                            .name(pair.getFirst().getIdentifier().getName())
+                                                                            .namespace(modelToCopy.getIdentifier().getNamespace())
+                                                                            .build())));
           });
     } else {
       // TODO PLG fix this part and consolidate with the previous one

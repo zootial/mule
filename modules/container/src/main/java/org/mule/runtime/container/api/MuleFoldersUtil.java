@@ -206,4 +206,4 @@ public class MuleFoldersUtil {
     return new File(getExecutionFolder(), MODULES_FOLDER);
   }
 
-}que
+}

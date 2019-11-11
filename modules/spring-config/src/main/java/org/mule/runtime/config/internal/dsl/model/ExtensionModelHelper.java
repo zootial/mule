@@ -207,9 +207,10 @@ public class ExtensionModelHelper {
               new ExtensionWalker() {
 
                 @Override
-                protected void onConfiguration(ConfigurationModel model)
-                {
-                  model.getConnectionProviders().stream().filter(cpm ->cpm.getName().equals(NameUtils.toCamelCase(componentIdentifier.getName(),"-"))).findAny().ifPresent(modelRef::set);
+                protected void onConfiguration(ConfigurationModel model) {
+                  model.getConnectionProviders().stream()
+                      .filter(cpm -> cpm.getName().equals(NameUtils.toCamelCase(componentIdentifier.getName(), "-"))).findAny()
+                      .ifPresent(modelRef::set);
                 }
 
                 @Override
