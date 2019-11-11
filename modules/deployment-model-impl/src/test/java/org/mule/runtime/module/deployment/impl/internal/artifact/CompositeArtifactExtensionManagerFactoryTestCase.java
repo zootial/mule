@@ -41,7 +41,8 @@ public class CompositeArtifactExtensionManagerFactoryTestCase extends AbstractMu
     ExtensionModelLoaderRepository extensionModelLoaderRepository = mock(ExtensionModelLoaderRepository.class);
 
     ExtensionManagerFactory extensionManagerFactory = mock(ExtensionManagerFactory.class);
-    CompositeArtifactExtensionManagerFactory factory = new CompositeArtifactExtensionManagerFactory(application,
+    //TODO PLG review this
+    CompositeArtifactExtensionManagerFactory factory = new CompositeArtifactExtensionManagerFactory(null, application,
                                                                                                     extensionModelLoaderRepository,
                                                                                                     emptyList(),
                                                                                                     extensionManagerFactory);

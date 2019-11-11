@@ -41,6 +41,7 @@ import org.mule.runtime.api.meta.model.nested.NestedComponentModel;
 import org.mule.runtime.api.meta.model.nested.NestedRouteModel;
 import org.mule.runtime.api.meta.model.operation.HasOperationModels;
 import org.mule.runtime.api.meta.model.operation.OperationModel;
+import org.mule.runtime.api.meta.model.parameter.ParameterizedModel;
 import org.mule.runtime.api.meta.model.source.HasSourceModels;
 import org.mule.runtime.api.meta.model.source.SourceModel;
 import org.mule.runtime.api.meta.model.util.ExtensionWalker;
@@ -206,6 +207,12 @@ public class ExtensionModelHelper {
               new ExtensionWalker() {
 
                 @Override
+                protected void onConfiguration(ConfigurationModel model)
+                {
+                  model.getConnectionProviders().stream().filter(cpm ->cpm.getName().equals(NameUtils.toCamelCase(componentIdentifier.getName(),"-"))).findAny().ifPresent(modelRef::set);
+                }
+
+                @Override
                 protected void onConnectionProvider(org.mule.runtime.api.meta.model.connection.HasConnectionProviderModels owner,
                                                     ConnectionProviderModel model) {
                   if ((model.getName() + "Connection").equals(NameUtils.toCamelCase(componentIdentifier.getName(), "-"))) {
@@ -281,6 +288,14 @@ public class ExtensionModelHelper {
     return extensionsModels.stream()
         .filter(e -> e.getXmlDslModel().getPrefix().equals(componentIdentifier.getNamespace()))
         .findFirst();
+  }
+
+  public Optional<? extends ParameterizedModel> findParamerterizedModel(ComponentIdentifier componentIdentifier) {
+    Optional<? extends ParameterizedModel> parameterizedModel = findConfigurationModel(componentIdentifier);
+    if (parameterizedModel == null) {
+      parameterizedModel = findConnectionProviderModel(componentIdentifier);
+    }
+    return parameterizedModel;
   }
 
   private Optional<NestableElementModel> searchNestableElementModel(ExtensionModel extensionModel, String componentName) {

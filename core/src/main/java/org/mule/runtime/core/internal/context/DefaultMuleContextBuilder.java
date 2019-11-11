@@ -66,6 +66,7 @@ public class DefaultMuleContextBuilder implements MuleContextBuilder {
   private Optional<Properties> deploymentProperties = empty();
 
   private List<MuleContextListener> listeners = new ArrayList<>();
+  private String[] configurationFiles;
 
   /**
    * Creates a new builder
@@ -87,6 +88,7 @@ public class DefaultMuleContextBuilder implements MuleContextBuilder {
     muleContext.setNotificationManager(injectMuleContextIfRequired(getNotificationManager(), muleContext));
     muleContext.setLifecycleManager(injectMuleContextIfRequired(getLifecycleManager(), muleContext));
     muleContext.setArtifactType(artifactType);
+    muleContext.setConfigurationFiles(configurationFiles);
 
     final SimpleRegistry registry = new SimpleRegistry(muleContext, muleContext.getLifecycleInterceptor());
     muleContext.setRegistry(registry);
@@ -248,5 +250,10 @@ public class DefaultMuleContextBuilder implements MuleContextBuilder {
 
   public void setListeners(List<MuleContextListener> listeners) {
     this.listeners = listeners;
+  }
+
+  @Override
+  public void setConfigurationFiles(String[] configurationFiles) {
+    this.configurationFiles = configurationFiles;
   }
 }

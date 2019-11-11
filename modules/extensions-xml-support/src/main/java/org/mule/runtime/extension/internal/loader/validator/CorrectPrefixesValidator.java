@@ -18,7 +18,7 @@ import org.mule.runtime.api.meta.model.operation.HasOperationModels;
 import org.mule.runtime.api.meta.model.operation.OperationModel;
 import org.mule.runtime.api.meta.model.util.ExtensionWalker;
 import org.mule.runtime.config.api.dsl.CoreDslConstants;
-import org.mule.runtime.config.internal.dsl.model.extension.xml.property.OperationComponentModelModelProperty;
+import org.mule.runtime.config.internal.dsl.model.extension.xml.property.ComponentModelModelProperty;
 import org.mule.runtime.config.internal.dsl.spring.BeanDefinitionFactory;
 import org.mule.runtime.config.internal.model.ApplicationModel;
 import org.mule.runtime.config.internal.model.ComponentModel;
@@ -50,7 +50,7 @@ public class CorrectPrefixesValidator implements ExtensionModelValidator {
 
       @Override
       protected void onOperation(HasOperationModels owner, OperationModel operationModel) {
-        operationModel.getModelProperty(OperationComponentModelModelProperty.class)
+        operationModel.getModelProperty(ComponentModelModelProperty.class)
             .ifPresent(operationComponentModelModelProperty -> {
               searchAndValidate(extensionModel.getXmlDslModel().getPrefix(), operationModel,
                                 operationComponentModelModelProperty.getBodyComponentModel(), problemsReporter);

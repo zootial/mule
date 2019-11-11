@@ -69,4 +69,6 @@ public interface MuleContextBuilder {
   void setDeploymentProperties(Optional<Properties> properties);
 
   void setListeners(List<MuleContextListener> listeners);
+
+  void setConfigurationFiles(String[] configurationFiles);
 }

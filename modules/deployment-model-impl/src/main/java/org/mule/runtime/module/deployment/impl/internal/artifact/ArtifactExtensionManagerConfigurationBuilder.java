@@ -27,20 +27,27 @@ public class ArtifactExtensionManagerConfigurationBuilder extends AbstractConfig
 
   private final List<ArtifactPlugin> artifactPlugins;
   private final ExtensionManagerFactory extensionManagerFactory;
+  private ClassLoader executionClassLoader;
+  private String[] configurationFiles;
 
   /**
    * Creates an instance of the configuration builder.
-   *
-   * @param artifactPlugins {@link List} of {@link ArtifactPlugin ArtifactPlugins} to be registered.
+   *  @param artifactPlugins {@link List} of {@link ArtifactPlugin ArtifactPlugins} to be registered.
    * @param extensionManagerFactory creates the extension manager for this artifact. Non null.
+   * @param executionClassLoader
+   * @param configurationFiles
    */
   public ArtifactExtensionManagerConfigurationBuilder(List<ArtifactPlugin> artifactPlugins,
-                                                      ExtensionManagerFactory extensionManagerFactory) {
+                                                      ExtensionManagerFactory extensionManagerFactory,
+                                                      ClassLoader executionClassLoader,
+                                                      String[] configurationFiles) {
     checkNotNull(artifactPlugins, "artifactPlugins cannot be null");
     checkNotNull(extensionManagerFactory, "extensionManagerFactory cannot be null");
 
     this.artifactPlugins = artifactPlugins;
     this.extensionManagerFactory = extensionManagerFactory;
+    this.executionClassLoader = executionClassLoader;
+    this.configurationFiles = configurationFiles;
   }
 
   @Override

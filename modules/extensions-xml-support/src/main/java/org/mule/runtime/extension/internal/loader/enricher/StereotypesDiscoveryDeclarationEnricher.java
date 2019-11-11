@@ -27,7 +27,7 @@ import org.mule.runtime.api.meta.model.parameter.ParameterizedModel;
 import org.mule.runtime.api.meta.model.stereotype.StereotypeModel;
 import org.mule.runtime.api.meta.model.util.IdempotentExtensionWalker;
 import org.mule.runtime.config.internal.dsl.model.extension.xml.property.GlobalElementComponentModelModelProperty;
-import org.mule.runtime.config.internal.dsl.model.extension.xml.property.OperationComponentModelModelProperty;
+import org.mule.runtime.config.internal.dsl.model.extension.xml.property.ComponentModelModelProperty;
 import org.mule.runtime.config.internal.model.ComponentModel;
 import org.mule.runtime.core.api.el.ExpressionManager;
 import org.mule.runtime.extension.api.declaration.fluent.util.IdempotentDeclarationWalker;
@@ -94,7 +94,7 @@ public class StereotypesDiscoveryDeclarationEnricher implements DeclarationEnric
 
         @Override
         protected void onOperation(OperationDeclaration declaration) {
-          declaration.getModelProperty(OperationComponentModelModelProperty.class)
+          declaration.getModelProperty(ComponentModelModelProperty.class)
               .ifPresent(modelProperty -> {
                 ComponentModel bodyComponentModel = modelProperty.getBodyComponentModel();
 

@@ -16,6 +16,7 @@ import org.mule.runtime.api.meta.model.util.IdempotentExtensionWalker;
 import org.mule.runtime.config.internal.dsl.model.extension.xml.property.PrivateOperationsModelProperty;
 import org.mule.runtime.core.api.extension.ExtensionManager;
 import org.mule.runtime.core.api.processor.Processor;
+import org.mule.runtime.core.internal.processor.chain.MetadataKeyOperation;
 import org.mule.runtime.core.internal.processor.chain.ModuleOperationMessageProcessorChainBuilder;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChain;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChainBuilder;
@@ -32,6 +33,8 @@ public class ModuleOperationMessageProcessorChainFactoryBean extends MessageProc
   private Map<String, String> parameters = new HashMap<>();
   private String moduleName;
   private String moduleOperation;
+  private MetadataKeyOperation metadataKeyOperation;
+
   @Inject
   private ExtensionManager extensionManager;
 
@@ -63,7 +66,10 @@ public class ModuleOperationMessageProcessorChainFactoryBean extends MessageProc
     final ExtensionModel extensionModel = getExtensionModelOrFail();
     return new ModuleOperationMessageProcessorChainBuilder(properties, parameters, extensionModel,
                                                            getOperationModelOrFail(extensionModel),
-                                                           muleContext.getExpressionManager());
+                                                           muleContext.getExpressionManager(),
+                                                           muleContext.getConfigurationComponentLocator(),
+                                                           muleContext.getTransformationService(),
+                                                           metadataKeyOperation);
   }
 
   private ExtensionModel getExtensionModelOrFail() {
@@ -85,6 +91,10 @@ public class ModuleOperationMessageProcessorChainFactoryBean extends MessageProc
                            .orElseThrow(() -> new IllegalArgumentException(format("Could not find any operation under the name of [%s] for the extension [%s]",
                                                                                   moduleOperation, moduleName))));
     return operationModel;
+  }
+
+  public void setMetadataKeyOperation(MetadataKeyOperation metadataKeyOperation) {
+    this.metadataKeyOperation = metadataKeyOperation;
   }
 
   public void setProperties(Map<String, String> properties) {

@@ -12,6 +12,8 @@ import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static org.mule.runtime.api.el.BindingContextUtils.NULL_BINDING_CONTEXT;
 import static org.mule.runtime.api.el.BindingContextUtils.getTargetBindingContext;
+import static org.mule.runtime.api.metadata.MetadataKeyBuilder.newKey;
+import static org.mule.runtime.api.metadata.resolving.MetadataResult.success;
 import static org.mule.runtime.api.notification.EnrichedNotificationInfo.createInfo;
 import static org.mule.runtime.core.internal.component.ComponentAnnotations.ANNOTATION_PARAMETERS;
 import static org.mule.runtime.core.internal.message.InternalMessage.builder;
@@ -25,21 +27,40 @@ import org.mule.metadata.api.model.MetadataFormat;
 import org.mule.metadata.api.model.MetadataType;
 import org.mule.metadata.api.utils.MetadataTypeUtils;
 import org.mule.runtime.api.component.Component;
+import org.mule.runtime.api.component.execution.ExecutableComponent;
+import org.mule.runtime.api.component.execution.ExecutionResult;
+import org.mule.runtime.api.component.execution.InputEvent;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.el.BindingContext;
+import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.exception.MuleException;
+import org.mule.runtime.api.lifecycle.InitialisationException;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.ErrorType;
+import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.meta.model.ExtensionModel;
+import org.mule.runtime.api.meta.model.ModelProperty;
 import org.mule.runtime.api.meta.model.operation.OperationModel;
 import org.mule.runtime.api.meta.model.parameter.ParameterModel;
 import org.mule.runtime.api.metadata.DataType;
+import org.mule.runtime.api.metadata.MetadataKey;
+import org.mule.runtime.api.metadata.MetadataKeyProvider;
+import org.mule.runtime.api.metadata.MetadataKeysContainer;
+import org.mule.runtime.api.metadata.MetadataKeysContainerBuilder;
+import org.mule.runtime.api.metadata.MetadataResolvingException;
 import org.mule.runtime.api.metadata.TypedValue;
+import org.mule.runtime.api.metadata.resolving.MetadataResult;
 import org.mule.runtime.api.notification.EnrichedNotificationInfo;
+import org.mule.runtime.api.transformation.TransformationService;
 import org.mule.runtime.api.util.Pair;
 import org.mule.runtime.core.api.context.notification.FlowStackElement;
 import org.mule.runtime.core.api.el.ExpressionManager;
 import org.mule.runtime.core.api.event.CoreEvent;
+import org.mule.runtime.core.api.event.EventContextFactory;
+import org.mule.runtime.core.api.exception.FlowExceptionHandler;
+import org.mule.runtime.core.api.functional.Either;
 import org.mule.runtime.core.api.processor.Processor;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
 import org.mule.runtime.core.internal.context.notification.DefaultFlowCallStack;
@@ -52,9 +73,14 @@ import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChain;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
@@ -77,7 +103,7 @@ import reactor.core.publisher.Mono;
  * <pre>
  *  <module-operation-chain moduleName="a-module-name" moduleOperation="an-operation-name">
  *    <module-operation-properties/>
- *    <module-operation-parameters>
+ *    <module-operation-parameters> 
  *      <module-operation-parameter-entry value="howdy" key="value1"/>
  *      <module-operation-parameter-entry value="#[vars.person]" key="value2"/>
  *    </module-operation-parameters>
@@ -98,9 +124,9 @@ public class ModuleOperationMessageProcessorChainBuilder extends DefaultMessageP
    * value of this field will name the global element as <github:connection ../>. As an example, think of the following snippet:
    *
    * <code>
-   *    <github:config configParameter="someFood" ...>
-   *      <github:connection username="myUsername" .../>
-   *    </github:config>
+   * <github:config configParameter="someFood" ...>
+   * <github:connection username="myUsername" .../>
+   * </github:config>
    * </code>
    */
   public static final String MODULE_CONNECTION_GLOBAL_ELEMENT_NAME = "connection";
@@ -110,16 +136,26 @@ public class ModuleOperationMessageProcessorChainBuilder extends DefaultMessageP
   private final ExtensionModel extensionModel;
   private final OperationModel operationModel;
   private final ExpressionManager expressionManager;
+  private final ConfigurationComponentLocator configurationComponentLocator;
+  private final TransformationService transformationService;
+  private final MetadataKeyOperation metadataKeyOperation;
+
 
   public ModuleOperationMessageProcessorChainBuilder(Map<String, String> properties,
                                                      Map<String, String> parameters,
                                                      ExtensionModel extensionModel, OperationModel operationModel,
-                                                     ExpressionManager expressionManager) {
+                                                     ExpressionManager expressionManager,
+                                                     ConfigurationComponentLocator configurationComponentLocator,
+                                                     TransformationService transformationService,
+                                                     MetadataKeyOperation metadataKeyOperation) {
     this.properties = properties;
     this.parameters = parameters;
     this.extensionModel = extensionModel;
     this.operationModel = operationModel;
     this.expressionManager = expressionManager;
+    this.configurationComponentLocator = configurationComponentLocator;
+    this.transformationService = transformationService;
+    this.metadataKeyOperation = metadataKeyOperation;
   }
 
   @Override
@@ -129,14 +165,17 @@ public class ModuleOperationMessageProcessorChainBuilder extends DefaultMessageP
                                              properties, parameters,
                                              extensionModel, operationModel,
                                              expressionManager,
-                                             processingStrategy);
+                                             processingStrategy,
+                                             configurationComponentLocator,
+                                             transformationService,
+                                             metadataKeyOperation);
   }
 
   /**
    * Generates message processor for a specific set of parameters & properties to be added in a new event.
    */
   static public class ModuleOperationProcessorChain extends DefaultMessageProcessorChain
-      implements Processor {
+      implements Processor, MetadataKeyProvider {
 
     private final Map<String, Pair<String, MetadataType>> properties;
     private final Map<String, Pair<String, MetadataType>> parameters;
@@ -144,13 +183,19 @@ public class ModuleOperationMessageProcessorChainBuilder extends DefaultMessageP
     private final ExpressionManager expressionManager;
     private final Optional<String> target;
     private final String targetValue;
+    private final ConfigurationComponentLocator configurationComponentLocator;
+    private final TransformationService transformationService;
+    private final MetadataKeyOperation metadataKeyOperation;
 
     ModuleOperationProcessorChain(String name, Processor head, List<Processor> processors,
                                   List<Processor> processorsForLifecycle,
                                   Map<String, String> properties, Map<String, String> parameters,
                                   ExtensionModel extensionModel, OperationModel operationModel,
                                   ExpressionManager expressionManager,
-                                  ProcessingStrategy processingStrategy) {
+                                  ProcessingStrategy processingStrategy,
+                                  ConfigurationComponentLocator configurationComponentLocator,
+                                  TransformationService transformationService,
+                                  MetadataKeyOperation metadataKeyOperation) {
       super(name, ofNullable(processingStrategy), head, processors, processorsForLifecycle);
       final List<ParameterModel> propertiesModels = getAllProperties(extensionModel);
       this.properties = parseParameters(properties, propertiesModels);
@@ -159,6 +204,9 @@ public class ModuleOperationMessageProcessorChainBuilder extends DefaultMessageP
       this.parameters = parseParameters(parameters, operationModel.getAllParameterModels());
       this.returnsVoid = MetadataTypeUtils.isVoid(operationModel.getOutput().getType());
       this.expressionManager = expressionManager;
+      this.configurationComponentLocator = configurationComponentLocator;
+      this.transformationService = transformationService;
+      this.metadataKeyOperation = metadataKeyOperation;
     }
 
     /**
@@ -223,13 +271,11 @@ public class ModuleOperationMessageProcessorChainBuilder extends DefaultMessageP
     }
 
     /**
-     * If any of the internals of an <operation/> throws an {@link MuleException}, this method will be responsible of
-     * altering the current location of that exception will change to target the call invocation of the smart connector's
-     * operation.
-     * <br/>
-     * By doing so, later processing (such as {@link MuleException#getDetailedMessage()}) will keep digging for the prime
-     * cause of the exception, which means the Mule application will <b>only see</b> the logs of the application's call to the
-     * smart connector's <operation/>, rather than the internals of the smart connector's internals.
+     * If any of the internals of an <operation/> throws an {@link MuleException}, this method will be responsible of altering the
+     * current location of that exception will change to target the call invocation of the smart connector's operation. <br/>
+     * By doing so, later processing (such as {@link MuleException#getDetailedMessage()}) will keep digging for the prime cause of
+     * the exception, which means the Mule application will <b>only see</b> the logs of the application's call to the smart
+     * connector's <operation/>, rather than the internals of the smart connector's internals.
      */
     private Function<MessagingException, Throwable> remapMessagingException() {
       return me -> {
@@ -336,6 +382,74 @@ public class ModuleOperationMessageProcessorChainBuilder extends DefaultMessageP
             .evaluate(value, expectedOutputType, NULL_BINDING_CONTEXT, event, headLocation, false);
       }
       return evaluatedResult;
+    }
+
+    @Override
+    public void initialise() throws InitialisationException {
+      super.initialise();
+      if (metadataKeyOperation != null) {
+        metadataKeyOperation.initialise();
+      }
+    }
+
+    @Override
+    public void start() throws MuleException {
+      super.start();
+      if (metadataKeyOperation != null) {
+        metadataKeyOperation.start();
+      }
+    }
+
+    @Override
+    public void stop() throws MuleException {
+      super.stop();
+      if (metadataKeyOperation != null) {
+        metadataKeyOperation.stop();
+      }
+    }
+
+    @Override
+    public void dispose() {
+      super.dispose();
+      if (metadataKeyOperation != null) {
+        metadataKeyOperation.dispose();
+      }
+    }
+
+    @Override
+    public MetadataResult<MetadataKeysContainer> getMetadataKeys() throws MetadataResolvingException {
+      if (metadataKeyOperation == null) {
+        // TODO PLG fix
+        throw new RuntimeException("lalalalala");
+      }
+      try {
+        //TODO this hould not be done here. Validate why start is not being invoked
+        metadataKeyOperation.start();
+        metadataKeyOperation.getProcessorChain().start();
+      } catch (MuleException e) {
+        throw new RuntimeException(e);
+      }
+      AtomicReference<Exception> e = new AtomicReference<>();
+      CompletableFuture<ExecutionResult> completableFuture =
+          metadataKeyOperation.getProcessorChain().execute(InputEvent.create());
+      try {
+        ExecutionResult eventResult = completableFuture.get();
+        if (e.get() != null) {
+          throw new RuntimeException(e.get());
+        }
+        // Message message = transformationService.transform(eventResult.getEvent().getMessage(),
+        // DataType.fromType(MetadataResult.class));
+        // return (MetadataResult) message.getPayload().getValue();
+        // Lets hard code sample data for testing
+        Set<MetadataKey> keys = new LinkedHashSet<>();
+        keys.add(newKey("first-key").build());
+        keys.add(newKey("second-key").build());
+        MetadataResult<MetadataKeysContainer> successResult =
+            success(MetadataKeysContainerBuilder.getInstance().add("metadata-category", keys).build());
+        return successResult;
+      } catch (Exception e1) {
+        throw new RuntimeException(e1);
+      }
     }
   }
 }

@@ -368,5 +368,9 @@ public interface MuleContext extends Lifecycle {
    */
   Properties getDeploymentProperties();
 
+  default String[] getConfigurationFiles() {
+    return new String[0];
+  }
+
 }
 

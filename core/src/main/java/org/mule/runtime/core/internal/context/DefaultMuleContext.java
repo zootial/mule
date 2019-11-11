@@ -269,6 +269,8 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
     Hooks.onNextDropped(event -> LOGGER.debug("EVENT DROPPED " + event));
   }
 
+  private String[] configurationFiles;
+
   public DefaultMuleContext() {
     transformationService = new ExtendedTransformationService(this);
   }
@@ -313,6 +315,10 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
         throw new InitialisationException(e, this);
       }
     }
+  }
+
+  public void setConfigurationFiles(String[] configurationFiles) {
+    this.configurationFiles = configurationFiles;
   }
 
   private class DefaultLifecycleStrategy implements LifecycleStrategy {
@@ -1094,9 +1100,13 @@ public class DefaultMuleContext implements MuleContextWithRegistry, PrivilegedMu
     return errorTypeLocator;
   }
 
+  public String[] getConfigurationFiles() {
+    return configurationFiles;
+  }
+
   /**
-   * {@inheritDoc}
-   */
+  * {@inheritDoc}
+  */
   @Override
   public ErrorTypeRepository getErrorTypeRepository() {
     return errorTypeRepository;

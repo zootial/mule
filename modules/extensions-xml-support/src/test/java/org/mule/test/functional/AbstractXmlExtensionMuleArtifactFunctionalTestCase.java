@@ -9,16 +9,6 @@ package org.mule.test.functional;
 import static org.mule.runtime.api.dsl.DslResolvingContext.getDefault;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.initialiseIfNeeded;
 import static org.mule.runtime.module.extension.api.util.MuleExtensionUtils.createDefaultExtensionManager;
-import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
-import org.mule.runtime.api.dsl.DslResolvingContext;
-import org.mule.runtime.api.meta.model.ExtensionModel;
-import org.mule.runtime.core.api.MuleContext;
-import org.mule.runtime.core.api.config.ConfigurationBuilder;
-import org.mule.runtime.core.api.config.builders.AbstractConfigurationBuilder;
-import org.mule.runtime.core.api.extension.ExtensionManager;
-import org.mule.runtime.extension.api.loader.xml.XmlExtensionModelLoader;
-import org.mule.runtime.extension.internal.loader.XmlExtensionLoaderDelegate;
-import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,6 +16,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
+import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
+import org.mule.runtime.api.dsl.DslResolvingContext;
+import org.mule.runtime.api.meta.model.ExtensionModel;
+import org.mule.runtime.core.api.MuleContext;
+import org.mule.runtime.core.api.config.ConfigurationBuilder;
+import org.mule.runtime.core.api.config.bootstrap.ArtifactType;
+import org.mule.runtime.core.api.config.builders.AbstractConfigurationBuilder;
+import org.mule.runtime.core.api.extension.ExtensionManager;
+import org.mule.runtime.extension.api.loader.xml.ArtifactXmlExtensionModelLoader;
+import org.mule.runtime.extension.api.loader.xml.XmlExtensionModelLoader;
+import org.mule.runtime.extension.internal.loader.XmlExtensionLoaderDelegate;
+import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
 /**
  * Abstract class to generate an {@link ExtensionModel} from an extension built from an XML file.
@@ -72,6 +75,26 @@ public abstract class AbstractXmlExtensionMuleArtifactFunctionalTestCase extends
         }
         extensionManager = muleContext.getExtensionManager();
         registerXmlExtensions(extensionManager);
+        registerApplicationExtension(muleContext.getConfigurationFiles(), muleContext.getExecutionClassLoader(),
+                                     extensionManager);
+      }
+
+      private void registerApplicationExtension(String[] configurationFiles, ClassLoader executionClassLoader,
+                                                ExtensionManager extensionManager) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(ArtifactXmlExtensionModelLoader.RESOURCE_XMLS,
+                   getConfigFile() == null ? getConfigFiles() : new String[] {getConfigFile()});
+        params.put(ArtifactXmlExtensionModelLoader.VALIDATE_XML, false);
+        params.put(ArtifactXmlExtensionModelLoader.NAME, "test-app");
+        params.put(ArtifactXmlExtensionModelLoader.TYPE, ArtifactType.APP);
+        Set<ExtensionModel> extensions = extensionManager.getExtensions();
+        final DslResolvingContext dslResolvingContext = getDefault(extensions);
+        final ExtensionModel extensionModel =
+            new ArtifactXmlExtensionModelLoader().loadExtensionModel(getClass().getClassLoader(), dslResolvingContext, params);
+        if (extensionModel.getOperationModels().isEmpty() && extensionModel.getSourceModels().isEmpty()) {
+          return;
+        }
+        extensionManager.registerExtension(extensionModel);
       }
 
       private void registerXmlExtensions(ExtensionManager extensionManager) {

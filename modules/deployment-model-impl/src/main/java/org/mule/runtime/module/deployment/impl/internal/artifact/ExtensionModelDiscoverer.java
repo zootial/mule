@@ -10,25 +10,35 @@ package org.mule.runtime.module.deployment.impl.internal.artifact;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
 import static org.mule.runtime.api.dsl.DslResolvingContext.getDefault;
-import org.mule.runtime.api.deployment.meta.MulePluginModel;
-import org.mule.runtime.api.meta.model.ExtensionModel;
-import org.mule.runtime.api.util.Pair;
-import org.mule.runtime.core.api.extension.MuleExtensionModelProvider;
-import org.mule.runtime.core.api.registry.SpiServiceRegistry;
-import org.mule.runtime.core.api.extension.RuntimeExtensionModelProvider;
-import org.mule.runtime.deployment.model.api.plugin.ArtifactPluginDescriptor;
-import org.mule.runtime.deployment.model.api.plugin.LoaderDescriber;
-import org.mule.runtime.extension.api.loader.ExtensionModelLoader;
-import org.mule.runtime.module.artifact.api.classloader.ArtifactClassLoader;
-import org.mule.runtime.module.extension.internal.loader.ExtensionModelLoaderRepository;
-
-import com.google.common.collect.ImmutableSet;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import org.mule.runtime.api.deployment.meta.MulePluginModel;
+import org.mule.runtime.api.meta.model.ExtensionModel;
+import org.mule.runtime.api.util.Pair;
+import org.mule.runtime.core.api.config.bootstrap.ArtifactType;
+import org.mule.runtime.core.api.extension.MuleExtensionModelProvider;
+import org.mule.runtime.core.api.extension.RuntimeExtensionModelProvider;
+import org.mule.runtime.core.api.registry.SpiServiceRegistry;
+import org.mule.runtime.deployment.model.api.plugin.ArtifactPluginDescriptor;
+import org.mule.runtime.deployment.model.api.plugin.LoaderDescriber;
+import org.mule.runtime.extension.api.loader.ExtensionModelLoader;
+import org.mule.runtime.extension.api.loader.xml.ArtifactXmlExtensionModelLoader;
+import org.mule.runtime.module.artifact.api.classloader.ArtifactClassLoader;
+import org.mule.runtime.module.artifact.api.descriptor.ArtifactDescriptor;
+import org.mule.runtime.module.artifact.api.descriptor.BundleDescriptor;
+import org.mule.runtime.module.extension.internal.loader.ExtensionModelLoaderRepository;
+
+import com.google.common.collect.ImmutableSet;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Discover the {@link ExtensionModel} based on the {@link ExtensionModelLoader} type.
@@ -36,6 +46,8 @@ import java.util.Set;
  * @since 4.0
  */
 public class ExtensionModelDiscoverer {
+
+  private final static Logger LOGGER = LoggerFactory.getLogger(ExtensionModelDiscoverer.class);
 
   /**
    * For each artifactPlugin discovers the {@link ExtensionModel}.
@@ -46,9 +58,10 @@ public class ExtensionModelDiscoverer {
    * @return {@link Set} of {@link Pair} carrying the {@link ArtifactPluginDescriptor} and it's corresponding
    *         {@link ExtensionModel}.
    */
-  public Set<Pair<ArtifactPluginDescriptor, ExtensionModel>> discoverPluginsExtensionModels(ExtensionModelLoaderRepository loaderRepository,
-                                                                                            List<Pair<ArtifactPluginDescriptor, ArtifactClassLoader>> artifactPlugins) {
-    return discoverPluginsExtensionModels(loaderRepository, artifactPlugins, new HashSet<>());
+  public Set<Pair<ArtifactDescriptor, ExtensionModel>> discoverExtensionModels(Optional<Pair<ClassLoader, ArtifactDescriptor>> artifact,
+                                                                               ExtensionModelLoaderRepository loaderRepository,
+                                                                               List<Pair<ArtifactPluginDescriptor, ArtifactClassLoader>> artifactPlugins) {
+    return discoverExtensionModels(artifact, loaderRepository, artifactPlugins, new HashSet<>());
   }
 
   /**
@@ -61,10 +74,13 @@ public class ExtensionModelDiscoverer {
    * @return {@link Set} of {@link Pair} carrying the {@link ArtifactPluginDescriptor} and it's corresponding
    *         {@link ExtensionModel}.
    */
-  public Set<Pair<ArtifactPluginDescriptor, ExtensionModel>> discoverPluginsExtensionModels(ExtensionModelLoaderRepository loaderRepository,
-                                                                                            List<Pair<ArtifactPluginDescriptor, ArtifactClassLoader>> artifactPlugins,
-                                                                                            Set<ExtensionModel> parentArtifactExtensions) {
-    final Set<Pair<ArtifactPluginDescriptor, ExtensionModel>> descriptorsWithExtensions = new HashSet<>();
+  public Set<Pair<ArtifactDescriptor, ExtensionModel>> discoverExtensionModels(Optional<Pair<ClassLoader, ArtifactDescriptor>> artifact,
+                                                                               ExtensionModelLoaderRepository loaderRepository,
+                                                                               List<Pair<ArtifactPluginDescriptor, ArtifactClassLoader>> artifactPlugins,
+                                                                               Set<ExtensionModel> parentArtifactExtensions) {
+
+
+    final Set<Pair<ArtifactDescriptor, ExtensionModel>> descriptorsWithExtensions = new HashSet<>();
     artifactPlugins.forEach(artifactPlugin -> {
       Set<ExtensionModel> extensions = descriptorsWithExtensions.stream().map(Pair::getSecond).collect(toSet());
       extensions.addAll(parentArtifactExtensions);
@@ -81,6 +97,47 @@ public class ExtensionModelDiscoverer {
         descriptorsWithExtensions.add(new Pair<>(artifactPluginDescriptor, extension));
       }
     });
+
+    // the descriptor may be null in the case of the default domian
+    if (artifact.isPresent() && artifact.get().getSecond() != null) {
+      Set<String> configResources = artifact.get().getSecond().getConfigResources();
+      if (configResources == null) {
+        configResources = Collections.emptySet();
+      }
+      String[] configurationFiles = configResources.toArray(new String[0]);
+      BundleDescriptor bundleDescriptor = artifact.get().getSecond().getBundleDescriptor();
+      ClassLoader executionClassLoader = artifact.get().getFirst();
+
+      LoaderDescriber applicationLoaderDescriber = new LoaderDescriber(ArtifactXmlExtensionModelLoader.DESCRIBER_ID);
+      HashMap<String, Object> attributes = new HashMap<>();
+
+      //TODO PLG fix since there could be others
+
+      attributes.put(ArtifactXmlExtensionModelLoader.TYPE, artifact.get().getSecond().getBundleDescriptor().getClassifier()
+          .map(classifier -> classifier.equals("mule-application") ? ArtifactType.APP : ArtifactType.DOMAIN).get());
+      attributes.put(ArtifactXmlExtensionModelLoader.RESOURCE_XMLS, configurationFiles);
+      attributes.put(ArtifactXmlExtensionModelLoader.NAME, bundleDescriptor.getGroupId()
+          + "/" + bundleDescriptor.getArtifactId());
+      applicationLoaderDescriber.addAttributes(attributes);
+
+      ExtensionModelLoader applicationModelLoader = loaderRepository.getExtensionModelLoader(applicationLoaderDescriber)
+          .orElseThrow(() -> new IllegalArgumentException(format("The identifier '%s' does not match with the describers available "
+              + "to generate an ExtensionModel (working with the plugin '%s')", applicationLoaderDescriber.getId(),
+                                                                 artifact.get().getSecond().getName())));
+
+      try {
+        ExtensionModel extensionModel = applicationModelLoader
+            .loadExtensionModel(executionClassLoader,
+                                getDefault(descriptorsWithExtensions.stream().map(pair -> pair.getSecond()).collect(toSet())),
+                                applicationLoaderDescriber.getAttributes());
+        descriptorsWithExtensions.add(new Pair(artifact.get().getSecond(), extensionModel));
+      } catch (Exception e) {
+        //TODO PLG for now we don't care for the POC
+        LOGGER.error("####### fail retrieving artifact extension model", e);
+      }
+    }
+
+
     return descriptorsWithExtensions;
   }
 

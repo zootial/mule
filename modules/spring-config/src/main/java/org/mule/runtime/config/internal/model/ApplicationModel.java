@@ -93,6 +93,7 @@ import org.mule.runtime.dsl.api.xml.parser.ConfigLine;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +102,7 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -149,6 +151,10 @@ public class ApplicationModel implements ArtifactAst {
   private static final String MODULE_OPERATION_CHAIN_ELEMENT = "module-operation-chain";
 
   public static final String REDELIVERY_POLICY_ELEMENT = "redelivery-policy";
+  public static final String SOURCE_REF = "source-ref";
+  public static final String SOURCE = "source";
+  public static final String BODY = "body";
+  public static final String OPERATION = "operation";
   // TODO MULE-9638 Remove once all bean definitions parsers where migrated
   public static final String TEST_NAMESPACE = "test";
   public static final String DOC_NAMESPACE = "doc";
@@ -192,13 +198,21 @@ public class ApplicationModel implements ArtifactAst {
   public static final ComponentIdentifier OBJECT_IDENTIFIER =
       builder().namespace(CORE_PREFIX).name(OBJECT_ELEMENT).build();
   public static final ComponentIdentifier REDELIVERY_POLICY_IDENTIFIER =
-      builder().namespace(CORE_PREFIX).name(REDELIVERY_POLICY_ELEMENT).build();
+      builder().namespace(CORE_PREFIX).name(SOURCE_REF).build();
   public static final ComponentIdentifier GLOBAL_PROPERTY_IDENTIFIER =
       builder().namespace(CORE_PREFIX).name(GLOBAL_PROPERTY).build();
   public static final ComponentIdentifier SECURITY_MANAGER_IDENTIFIER =
       builder().namespace(CORE_PREFIX).name(SECURITY_MANAGER).build();
   public static final ComponentIdentifier MODULE_OPERATION_CHAIN =
       builder().namespace(CORE_PREFIX).name(MODULE_OPERATION_CHAIN_ELEMENT).build();
+  public static final ComponentIdentifier SOURCE_REF_IDENTIFIER =
+      builder().namespace(CORE_PREFIX).name(SOURCE_REF).build();
+  public static final ComponentIdentifier SOURCE_IDENTIFIER =
+      builder().namespace(CORE_PREFIX).name(SOURCE).build();
+  public static final ComponentIdentifier BODY_IDENTIFIER =
+      builder().namespace(CORE_PREFIX).name(BODY).build();
+  public static final ComponentIdentifier OPERATION_IDENTIFIER =
+      builder().namespace(CORE_PREFIX).name(OPERATION).build();
 
 
   // TODO MULE-13042 - remove this constants and their usages one this code gets migrated to use extension models.
@@ -352,11 +366,27 @@ public class ApplicationModel implements ArtifactAst {
       // Have to index again the component models with macro expanded ones
       indexComponentModels();
     }
+    //TODO PLG this is done to avoid failing when parsing operation. we need to review if this is the right way to do it or actually we should just ignore the component when parsing without removing it from the application model.
+    removeArtifactOperations();
     // TODO MULE-13894 do this only on runtimeMode=true once unified extensionModel names to use camelCase (see smart connectors
     // and crafted declared extension models)
     resolveComponentTypes();
     resolveTypedComponentIdentifier(extensionModelHelper);
     executeOnEveryMuleComponentTree(componentModel -> new ComponentLocationVisitor().accept(componentModel));
+  }
+
+  private void removeArtifactOperations() {
+    Iterator<ComponentModel> iterator = muleComponentModels.iterator();
+    while (iterator.hasNext()) {
+      ComponentModel componentModel = iterator.next();
+      Iterator<ComponentModel> globalElementsIterator = componentModel.getInnerComponents().iterator();
+      while (globalElementsIterator.hasNext()) {
+        ComponentModel globalElement = globalElementsIterator.next();
+        if (globalElement.getIdentifier().equals(OPERATION_IDENTIFIER)) {
+          globalElementsIterator.remove();
+        }
+      }
+    }
   }
 
   private void indexComponentModels() {
@@ -635,6 +665,53 @@ public class ApplicationModel implements ArtifactAst {
    */
   private void createEffectiveModel() {
     processSourcesRedeliveryPolicy();
+    processSourceRef();
+    removeSource();
+  }
+
+  private void removeSource() {
+    Iterator<ComponentModel> iterator = muleComponentModels.get(0).getInnerComponents().iterator();
+    while (iterator.hasNext()) {
+      ComponentModel componentModel = iterator.next();
+      if (componentModel.getIdentifier().equals(SOURCE_IDENTIFIER)) {
+        iterator.remove();
+      }
+    }
+  }
+
+  private void processSourceRef() {
+    //TODO make this code less ugly
+    executeOnEveryFlow(flowComponentModel -> {
+      if (!flowComponentModel.getInnerComponents().isEmpty()) {
+        ComponentModel possibleSourceComponent = flowComponentModel.getInnerComponents().get(0);
+        if (possibleSourceComponent.getIdentifier().equals(SOURCE_REF_IDENTIFIER)) {
+          String sourceRefName = possibleSourceComponent.getNameAttribute();
+          AtomicReference<ComponentModel> sourceComponent = new AtomicReference<>();
+          executeOnEveryRootElement(rootElement -> {
+            if (rootElement.getIdentifier().equals(SOURCE_IDENTIFIER) && rootElement.getNameAttribute().equals(sourceRefName)) {
+              sourceComponent.set(rootElement);
+              return;
+            }
+          });
+          if (sourceComponent.get() == null) {
+            throw new IllegalStateException(String.format("Could not find referenced source with name: %s", sourceRefName));
+          }
+          flowComponentModel.getInnerComponents().remove(0);
+          //List<ComponentModel> bodyComponents = sourceComponent.get().getInnerComponents()
+          //    .stream()
+          //    .filter(nestedSourceModels -> nestedSourceModels.getIdentifier().getName().equals("body"))
+          //    .map(ComponentModel::getInnerComponents)
+          //    .findAny()
+          //    .get();
+          //bodyComponents.stream()
+          //        .forEach(cm -> cm.setParent(flowComponentModel));
+          //flowComponentModel.getInnerComponents().addAll(0, bodyComponents);
+          sourceComponent.get().setParent(flowComponentModel);
+          sourceComponent.get().setRoot(false);
+          flowComponentModel.getInnerComponents().add(0, sourceComponent.get());
+        }
+      }
+    });
   }
 
   /**

@@ -9,21 +9,25 @@ package org.mule.runtime.module.deployment.impl.internal.policy;
 
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toSet;
-import org.mule.runtime.api.meta.model.ExtensionModel;
-import org.mule.runtime.api.util.Pair;
-import org.mule.runtime.core.api.MuleContext;
-import org.mule.runtime.core.api.extension.ExtensionManager;
-import org.mule.runtime.deployment.model.api.plugin.ArtifactPlugin;
-import org.mule.runtime.deployment.model.api.plugin.ArtifactPluginDescriptor;
-import org.mule.runtime.module.artifact.api.classloader.ArtifactClassLoader;
-import org.mule.runtime.module.deployment.impl.internal.artifact.ExtensionModelDiscoverer;
-import org.mule.runtime.module.extension.api.manager.ExtensionManagerFactory;
-import org.mule.runtime.module.extension.internal.loader.ExtensionModelLoaderRepository;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+
+import org.mule.runtime.api.meta.model.ExtensionModel;
+import org.mule.runtime.api.util.Pair;
+import org.mule.runtime.core.api.MuleContext;
+import org.mule.runtime.core.api.extension.ExtensionManager;
+import org.mule.runtime.deployment.model.api.DeployableArtifactDescriptor;
+import org.mule.runtime.deployment.model.api.plugin.ArtifactPlugin;
+import org.mule.runtime.deployment.model.api.plugin.ArtifactPluginDescriptor;
+import org.mule.runtime.module.artifact.api.classloader.ArtifactClassLoader;
+import org.mule.runtime.module.artifact.api.descriptor.ArtifactDescriptor;
+import org.mule.runtime.module.deployment.impl.internal.artifact.ExtensionModelDiscoverer;
+import org.mule.runtime.module.extension.api.manager.ExtensionManagerFactory;
+import org.mule.runtime.module.extension.internal.loader.ExtensionModelLoaderRepository;
 
 /**
  * Creates {@link ExtensionManager} for mule artifacts that own a {@link MuleContext}
@@ -34,17 +38,20 @@ public class ArtifactExtensionManagerFactory implements ExtensionManagerFactory 
   private final List<Pair<ArtifactPluginDescriptor, ArtifactClassLoader>> artifactPlugins;
   private final ExtensionManagerFactory extensionManagerFactory;
   private final ExtensionModelDiscoverer extensionModelDiscoverer;
+  private final DeployableArtifactDescriptor descriptor;
 
   /**
    * Creates a extensionManager factory
    *
+   * @param descriptor
    * @param artifactPlugins artifact plugins deployed inside the artifact. Non null.
    * @param extensionModelLoaderRepository {@link ExtensionModelLoaderRepository} with the available extension loaders. Non null.
    * @param extensionManagerFactory creates the {@link ExtensionManager} for the artifact. Non null
    */
-  public ArtifactExtensionManagerFactory(List<ArtifactPlugin> artifactPlugins,
+  public ArtifactExtensionManagerFactory(DeployableArtifactDescriptor descriptor, List<ArtifactPlugin> artifactPlugins,
                                          ExtensionModelLoaderRepository extensionModelLoaderRepository,
                                          ExtensionManagerFactory extensionManagerFactory) {
+    this.descriptor = descriptor;
     this.artifactPlugins = new ArrayList<>();
     artifactPlugins.forEach(artifactPlugin -> this.artifactPlugins
         .add(new Pair<>(artifactPlugin.getDescriptor(), artifactPlugin.getArtifactClassLoader())));
@@ -66,9 +73,11 @@ public class ArtifactExtensionManagerFactory implements ExtensionManagerFactory 
     final Set<ExtensionModel> extensions = new HashSet<>();
     extensionModelDiscoverer.discoverRuntimeExtensionModels()
         .forEach(extensionManager::registerExtension);
-    extensions.addAll(extensionModelDiscoverer
-        .discoverPluginsExtensionModels(extensionModelLoaderRepository, artifactPlugins, parentArtifactExtensions)
-        .stream().map(Pair::getSecond).collect(toSet()));
+    Set<Pair<ArtifactDescriptor, ExtensionModel>> set = extensionModelDiscoverer
+        .discoverExtensionModels(Optional.of(new Pair(muleContext.getExecutionClassLoader(), descriptor)),
+                                 extensionModelLoaderRepository, artifactPlugins,
+                                 parentArtifactExtensions);
+    extensions.addAll(set.stream().map(Pair::getSecond).collect(toSet()));
     extensions.forEach(extensionManager::registerExtension);
     return extensionManager;
   }

@@ -30,6 +30,7 @@ import static org.mule.runtime.config.internal.model.ApplicationModel.GLOBAL_PRO
 import static org.mule.runtime.config.internal.model.ApplicationModel.MULE_PROPERTIES_IDENTIFIER;
 import static org.mule.runtime.config.internal.model.ApplicationModel.MULE_PROPERTY_IDENTIFIER;
 import static org.mule.runtime.config.internal.model.ApplicationModel.OBJECT_IDENTIFIER;
+import static org.mule.runtime.config.internal.model.ApplicationModel.OPERATION_IDENTIFIER;
 import static org.mule.runtime.config.internal.model.ApplicationModel.SECURITY_MANAGER_IDENTIFIER;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_EXPRESSION_LANGUAGE;
 import static org.mule.runtime.core.api.exception.Errors.ComponentIdentifiers.Handleable.ANY;
@@ -73,7 +74,9 @@ import java.util.function.Consumer;
 
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanReference;
+import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.ManagedList;
 import org.w3c.dom.Element;
 
 import com.google.common.collect.ImmutableSet;
@@ -218,7 +221,8 @@ public class BeanDefinitionFactory {
               addAnnotation(ANNOTATION_ERROR_MAPPINGS, errorMappingComponents.stream().map(innerComponent -> {
                 Map<String, String> parameters = innerComponent.getParameters();
                 ComponentIdentifier source = parameters.containsKey(SOURCE_TYPE)
-                    ? buildFromStringRepresentation(parameters.get(SOURCE_TYPE)) : ANY;
+                    ? buildFromStringRepresentation(parameters.get(SOURCE_TYPE))
+                    : ANY;
 
                 ErrorType errorType = errorTypeRepository
                     .lookupErrorType(source)

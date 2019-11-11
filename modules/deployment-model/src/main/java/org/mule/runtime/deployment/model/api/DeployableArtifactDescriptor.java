@@ -32,7 +32,6 @@ public class DeployableArtifactDescriptor extends ArtifactDescriptor {
 
   private boolean redeploymentEnabled = true;
   private File location;
-  private Set<String> configResources;
   private Set<ArtifactPluginDescriptor> plugins = new HashSet<>(0);
   private File logConfigFile;
 
@@ -43,12 +42,10 @@ public class DeployableArtifactDescriptor extends ArtifactDescriptor {
    */
   public DeployableArtifactDescriptor(String name) {
     super(name);
-    configResources = getDefaultConfigResources();
   }
 
   public DeployableArtifactDescriptor(String name, Optional<Properties> properties) {
     super(name, properties);
-    configResources = getDefaultConfigResources();
   }
 
   public boolean isRedeploymentEnabled() {
@@ -71,22 +68,6 @@ public class DeployableArtifactDescriptor extends ArtifactDescriptor {
    */
   public File getArtifactLocation() {
     return this.location;
-  }
-
-  public Set<String> getConfigResources() {
-    return configResources;
-  }
-
-  public void setConfigResources(Set<String> configResources) {
-    this.configResources = sanitizePaths(configResources);
-  }
-
-  private Set<String> sanitizePaths(Set<String> configResources) {
-    if (configResources == null || configResources.isEmpty()) {
-      return configResources;
-    }
-
-    return configResources.stream().map(s -> separatorsToUnix(s)).collect(toSet());
   }
 
   /**
@@ -117,10 +98,6 @@ public class DeployableArtifactDescriptor extends ArtifactDescriptor {
    */
   public File getDescriptorFile() {
     return new File(getRootFolder(), MULE_ARTIFACT_JSON_DESCRIPTOR_LOCATION);
-  }
-
-  protected Set<String> getDefaultConfigResources() {
-    return emptySet();
   }
 
   public void setLogConfigFile(File logConfigFile) {

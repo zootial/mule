@@ -216,6 +216,7 @@ public class DefaultMuleApplication extends AbstractDeployableArtifact<Applicati
     try {
       ArtifactContextBuilder artifactBuilder =
           newBuilder().setArtifactProperties(merge(descriptor.getAppProperties(), getProperties())).setArtifactType(APP)
+              .setArtifactDescriptor(descriptor)
               .setDataFolderName(descriptor.getDataFolderName())
               .setArtifactName(descriptor.getName()).setArtifactInstallationDirectory(descriptor.getArtifactLocation())
               .setConfigurationFiles(descriptor.getConfigResources().toArray(new String[descriptor.getConfigResources().size()]))

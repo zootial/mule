@@ -11,6 +11,7 @@ import static java.util.stream.Collectors.toList;
 import static org.mule.runtime.api.dsl.DslResolvingContext.getDefault;
 import static org.mule.runtime.core.api.util.ClassUtils.withContextClassLoader;
 import static org.mule.runtime.deployment.model.api.plugin.ArtifactPluginDescriptor.MULE_AUTO_GENERATED_ARTIFACT_PATH_INSIDE_JAR;
+import org.mule.runtime.api.dsl.DslResolvingContext;
 import org.mule.runtime.api.lifecycle.InitialisationException;
 import org.mule.runtime.api.meta.model.ExtensionModel;
 import org.mule.runtime.core.api.MuleContext;
@@ -19,16 +20,21 @@ import org.mule.runtime.core.api.extension.ExtensionManager;
 import org.mule.runtime.core.api.extension.RuntimeExtensionModelProvider;
 import org.mule.runtime.core.api.registry.SpiServiceRegistry;
 import org.mule.runtime.core.api.util.func.CheckedRunnable;
+import org.mule.runtime.extension.internal.loader.DefaultExtensionLoadingContext;
+import org.mule.runtime.extension.internal.loader.ExtensionModelFactory;
 import org.mule.runtime.module.artifact.api.classloader.ArtifactClassLoader;
 import org.mule.runtime.module.extension.api.manager.DefaultExtensionManagerFactory;
 import org.mule.runtime.module.extension.api.manager.ExtensionManagerFactory;
 
 import com.google.common.collect.ImmutableSet;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,6 +101,29 @@ public class IsolatedClassLoaderExtensionsManagerConfigurationBuilder extends Ab
       return muleContext.getExtensionManager();
     }
     ExtensionManager extensionManager = extensionManagerFactory.create(muleContext);
+
+    ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+    //try {
+    //  Thread.currentThread()
+    //      .setContextClassLoader(muleContext.getExecutionClassLoader().getParent().getParent().getParent().getParent());
+    //  DefaultExtensionLoadingContext defaultExtensionLoadingContext =
+    //      new DefaultExtensionLoadingContext(muleContext.getExecutionClassLoader(), getDefault(extensionManager.getExtensions()));
+    //  try {
+    //    Class<?> clazz = muleContext.getExecutionClassLoader()
+    //        .loadClass("org.mule.runtime.extension.internal.loader.ArtifactXmlExtensionLoaderDelegate");
+    //    Object instance = clazz.getDeclaredConstructors()[0]
+    //        .newInstance(new Object[] {muleContext.getConfigurationFiles(), false, Optional.empty(), Collections.emptyList()});
+    //    clazz.getDeclaredMethod("declare").invoke(instance, new Object[] {defaultExtensionLoadingContext});
+    //  } catch (Exception e) {
+    //    throw new RuntimeException(e);
+    //  }
+    //
+    //  ExtensionModelFactory extensionModelFactory = new ExtensionModelFactory();
+    //  ExtensionModel extensionModel = extensionModelFactory.create(defaultExtensionLoadingContext);
+    //  extensionManager.registerExtension(extensionModel);
+    //} finally {
+    //  Thread.currentThread().setContextClassLoader(contextClassLoader);
+    //}
 
     muleContext.setExtensionManager(extensionManager);
 

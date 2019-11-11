@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:test="http://www.mulesoft.org/schema/mule/test"
+      xmlns:test-app="http://www.mulesoft.org/schema/mule/test-app"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+                          http://www.mulesoft.org/schema/mule/test http://www.mulesoft.org/schema/mule/test/current/mule-test.xsd
+                          http://www.mulesoft.org/schema/mule/test-app http://www.mulesoft.org/schema/mule/test-app/current/mule-test-app.xsd">
+
+    <source name="mySource">
+        <parameters>
+            <parameter name="custom" type="boolean" defaultValue="false"/>
+            <parameter name="amount" type="number" defaultValue="3"/>
+        </parameters>
+        <body>
+            <scheduler>
+                <scheduling-strategy>
+                    <fixed-frequency startDelay="1000000" frequency="1000"/>
+                </scheduling-strategy>
+            </scheduler>
+            <set-payload value="hole"/>
+        </body>
+    </source>
+
+    <!--<source name="mySourceWithError">-->
+        <!--<body>-->
+            <!--<scheduler>-->
+                <!--<scheduling-strategy>-->
+                    <!--<fixed-frequency startDelay="1000000" frequency="1000"/>-->
+                <!--</scheduling-strategy>-->
+            <!--</scheduler>-->
+            <!--<set-payload value="hole"/>-->
+            <!--<raise-error type="MULE:ANY"/>-->
+        <!--</body>-->
+    <!--</source>-->
+
+    <!--<source name="mySourceWithErrorAndTry">-->
+        <!--<body>-->
+            <!--<scheduler>-->
+                <!--<scheduling-strategy>-->
+                    <!--<fixed-frequency startDelay="1000000" frequency="1000"/>-->
+                <!--</scheduling-strategy>-->
+            <!--</scheduler>-->
+            <!--<try>-->
+                <!--<set-payload value="hole"/>-->
+                <!--<raise-error type="MULE:ANY"/>-->
+                <!--<error-handler>-->
+                    <!--<on-error-continue/>-->
+                <!--</error-handler>-->
+            <!--</try>-->
+        <!--</body>-->
+    <!--</source>-->
+
+    <!--<source name="mySourceWithErrorAndTryNotHandled">-->
+        <!--<body>-->
+            <!--<scheduler>-->
+                <!--<scheduling-strategy>-->
+                    <!--<fixed-frequency startDelay="1000000" frequency="1000"/>-->
+                <!--</scheduling-strategy>-->
+            <!--</scheduler>-->
+            <!--<try>-->
+                <!--<set-payload value="hole"/>-->
+                <!--<raise-error type="MULE:ANY"/>-->
+            <!--</try>-->
+        <!--</body>-->
+    <!--</source>-->
+
+
+    <flow name="simpleFlow">
+        <!--<source-ref name="mySource"/>-->
+        <test-app:my-source custom="a" amount="b"/>
+        <test:queue name="simpleFlowQueue"/>
+    </flow>
+
+    <!--<flow name="simpleFlowReuse">-->
+    <!--<source-ref name="mySource"/>-->
+    <!--<test:queue name="simpleFlowReuseQueue"/>-->
+    <!--</flow>-->
+
+    <!--<flow name="sourceWithFailureFlow">-->
+        <!--<source-ref name="mySourceWithError"/>-->
+        <!--<test:queue name="sourceWithFailureFlowQueue"/>-->
+    <!--</flow>-->
+
+    <!--<flow name="sourceWithFailureFlowAndTry">-->
+        <!--<source-ref name="mySourceWithErrorAndTry"/>-->
+        <!--<test:queue name="sourceWithFailureFlowAndTryQueue"/>-->
+    <!--</flow>-->
+
+    <!--<flow name="sourceWithFailureFlowAndTryNotHandled">-->
+        <!--<source-ref name="mySourceWithErrorAndTryNotHandled"/>-->
+        <!--<test:queue name="sourceWithFailureFlowAndTryNotHandledQueue"/>-->
+    <!--</flow>-->
+
+    <flow name="flowUsingOperation">
+        <test-app:fail-raise-error-nested custom="true" amount="10"/>
+    </flow>
+
+    <operation name="fail-raise-error-nested">
+        <parameters>
+            <parameter name="custom" type="boolean" defaultValue="false"/>
+            <parameter name="amount" type="number" defaultValue="3"/>
+            <parameter name="amount" type="number" defaultValue="3"/>
+        </parameters>
+        <body>
+            <logger message="custom is: #[vars.custom] and amount is: #[vars.amount]" level="ERROR" />
+        </body>
+        <output type="string"/>
+        <errors>
+            <error type="SMART_CONNECTOR_CUSTOM_ERROR_CONNECTIVITY"/>
+        </errors>
+    </operation>
+
+</mule>

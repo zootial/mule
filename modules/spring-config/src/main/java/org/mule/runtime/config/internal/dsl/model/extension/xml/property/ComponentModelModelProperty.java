@@ -15,28 +15,28 @@ import org.mule.runtime.core.api.processor.Processor;
  *
  * @since 4.0
  */
-public class OperationComponentModelModelProperty implements ModelProperty {
+public class ComponentModelModelProperty implements ModelProperty {
 
-  private final ComponentModel operationComponentModel;
+  private final ComponentModel componentModel;
   private final ComponentModel bodyComponentModel;
 
   /**
    * Constructs a {@link ModelProperty} that will hold the complete <operation/> and its {@link Processor}s defined in a <body/>
    * element to be later macro expanded into a Mule application.
    *
-   * @param operationComponentModel <operation/> element represented through {@link ComponentModel}s.
+   * @param componentModel <operation/> element represented through {@link ComponentModel}s.
    * @param bodyComponentModel <body/> element with all the {@link Processor} represented through {@link ComponentModel}s.
    */
-  public OperationComponentModelModelProperty(ComponentModel operationComponentModel, ComponentModel bodyComponentModel) {
-    this.operationComponentModel = operationComponentModel;
+  public ComponentModelModelProperty(ComponentModel componentModel, ComponentModel bodyComponentModel) {
+    this.componentModel = componentModel;
     this.bodyComponentModel = bodyComponentModel;
   }
 
   /**
    * @return the {@link ComponentModel} that's pointing to the <operation/> element
    */
-  public ComponentModel getOperationComponentModel() {
-    return operationComponentModel;
+  public ComponentModel getComponentModel() {
+    return componentModel;
   }
 
   /**

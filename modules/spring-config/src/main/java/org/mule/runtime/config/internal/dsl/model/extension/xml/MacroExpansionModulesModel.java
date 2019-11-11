@@ -53,6 +53,7 @@ public class MacroExpansionModulesModel {
 
   private final ApplicationModel applicationModel;
   private final List<ExtensionModel> sortedExtensions;
+  private final Set<ExtensionModel> allExtensions;
 
   /**
    * From a mutable {@code applicationModel}, it will store it to apply changes when the {@link #expand()} method is executed.
@@ -65,6 +66,7 @@ public class MacroExpansionModulesModel {
   public MacroExpansionModulesModel(ApplicationModel applicationModel, Set<ExtensionModel> extensions) {
     this.applicationModel = applicationModel;
     this.sortedExtensions = calculateExtensionByTopologicalOrder(extensions);
+    this.allExtensions = extensions;
   }
 
   /**
@@ -79,9 +81,9 @@ public class MacroExpansionModulesModel {
                                    sortedExtension.getXmlDslModel().getPrefix(),
                                    sortedExtension.getXmlDslModel().getNamespace()));
       }
-      new MacroExpansionModuleModel(applicationModel, sortedExtension).expand();
+      new MacroExpansionModuleModel(applicationModel, sortedExtension, allExtensions).expand();
     }
-    if (LOGGER.isDebugEnabled()) {
+    if (LOGGER.isErrorEnabled()) {
       //only log the macro expanded app if there are smart connectors in it
       boolean hasMacroExpansionExtension = sortedExtensions.stream()
           .anyMatch(extensionModel -> extensionModel.getModelProperty(XmlExtensionModelProperty.class).isPresent());
@@ -95,7 +97,7 @@ public class MacroExpansionModulesModel {
           buf.append(lineSeparator()).append(FILE_MACRO_EXPANSION_SECTION_DELIMITER);
           buf.append(toXml(rootComponentModel));
           buf.append(lineSeparator()).append(FILE_MACRO_EXPANSION_DELIMITER);
-          LOGGER.debug(buf.toString());
+          LOGGER.error(buf.toString());
         });
       }
     }

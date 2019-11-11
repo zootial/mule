@@ -56,6 +56,7 @@ import org.mule.runtime.core.api.context.MuleContextBuilder;
 import org.mule.runtime.core.api.context.notification.MuleContextListener;
 import org.mule.runtime.core.api.policy.PolicyProvider;
 import org.mule.runtime.deployment.model.api.DeployableArtifact;
+import org.mule.runtime.deployment.model.api.DeployableArtifactDescriptor;
 import org.mule.runtime.deployment.model.api.artifact.ArtifactConfigurationProcessor;
 import org.mule.runtime.deployment.model.api.artifact.ArtifactContext;
 import org.mule.runtime.deployment.model.api.artifact.ArtifactContextConfiguration;
@@ -117,6 +118,7 @@ public class ArtifactContextBuilder {
   private Optional<Properties> properties = empty();
   private String dataFolderName;
   private ComponentBuildingDefinitionProvider runtimeComponentBuildingDefinitionProvider;
+  private DeployableArtifactDescriptor descriptor;
 
   private ArtifactContextBuilder() {}
 
@@ -404,18 +406,21 @@ public class ArtifactContextBuilder {
           MuleContext parentMuleContext = getMuleContext(parentArtifact).orElse(null);
           if (parentMuleContext == null || hasEmptyParentDomain) {
             extensionManagerFactory =
-                new ArtifactExtensionManagerFactory(artifactPlugins, extensionModelLoaderRepository,
+                new ArtifactExtensionManagerFactory(descriptor, artifactPlugins, extensionModelLoaderRepository,
                                                     new DefaultExtensionManagerFactory());
           } else {
-            extensionManagerFactory = new CompositeArtifactExtensionManagerFactory(parentArtifact, extensionModelLoaderRepository,
-                                                                                   artifactPlugins,
-                                                                                   new DefaultExtensionManagerFactory());
+            extensionManagerFactory =
+                new CompositeArtifactExtensionManagerFactory(descriptor, parentArtifact, extensionModelLoaderRepository,
+                                                             artifactPlugins,
+                                                             new DefaultExtensionManagerFactory());
           }
 
         }
 
         builders.add(new ArtifactExtensionManagerConfigurationBuilder(artifactPlugins,
-                                                                      extensionManagerFactory));
+                                                                      extensionManagerFactory,
+                                                                      executionClassLoader,
+                                                                      configurationFiles));
         builders.add(createConfigurationBuilderFromApplicationProperties());
         // TODO MULE-14289 (elrodro83) pass this object to the builder instead of looking it up here
         ArtifactConfigurationProcessor artifactConfigurationProcessor = ArtifactConfigurationProcessor.discover();
@@ -473,6 +478,7 @@ public class ArtifactContextBuilder {
         ArtifactObjectSerializer objectSerializer = new ArtifactObjectSerializer(classLoaderRepository);
         muleContextBuilder.setObjectSerializer(objectSerializer);
         muleContextBuilder.setDeploymentProperties(properties);
+        muleContextBuilder.setConfigurationFiles(configurationFiles);
 
         if (parentArtifact != null) {
           builders.add(new ConnectionManagerConfigurationBuilder(parentArtifact));
@@ -525,4 +531,8 @@ public class ArtifactContextBuilder {
     return this;
   }
 
+  public ArtifactContextBuilder setArtifactDescriptor(DeployableArtifactDescriptor descriptor) {
+    this.descriptor = descriptor;
+    return this;
+  }
 }

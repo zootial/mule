@@ -9,11 +9,20 @@ package org.mule.test.functional;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
+import org.mule.runtime.api.component.location.Location;
+import org.mule.runtime.api.metadata.MetadataKeysContainer;
+import org.mule.runtime.api.metadata.MetadataService;
+import org.mule.runtime.api.metadata.resolving.MetadataResult;
 import org.mule.runtime.core.api.event.CoreEvent;
+
+import javax.inject.Inject;
 
 import org.junit.Test;
 
 public class ModuleCapitalizedNameTestCase extends AbstractXmlExtensionMuleArtifactFunctionalTestCase {
+
+  @Inject
+  private MetadataService metadataService;
 
   @Override
   protected String getModulePath() {
@@ -41,6 +50,12 @@ public class ModuleCapitalizedNameTestCase extends AbstractXmlExtensionMuleArtif
   public void testSetPayloadWithNameParameter() throws Exception {
     final CoreEvent muleEvent = flowRunner("testSetPayloadWithNameParameter").run();
     assertThat(muleEvent.getMessage().getPayload().getValue(), is("the name parameter"));
+  }
+
+  @Test
+  public void testMetadata() {
+    MetadataResult<MetadataKeysContainer> testSetPayloadWithNameParameter = metadataService.getMetadataKeys(Location.builder()
+        .globalName("testSetPayloadWithNameParameter").addProcessorsPart().addIndexPart(0).build());
   }
 
 }

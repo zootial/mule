@@ -7,8 +7,11 @@
 
 package org.mule.runtime.module.artifact.api.descriptor;
 
+import static java.util.Collections.emptySet;
 import static java.util.Optional.empty;
 import static java.lang.String.format;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.io.FilenameUtils.separatorsToUnix;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.mule.runtime.api.util.Preconditions.checkArgument;
 import org.mule.api.annotation.NoExtend;
@@ -19,6 +22,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 
 @NoExtend
 public class ArtifactDescriptor {
@@ -38,6 +42,7 @@ public class ArtifactDescriptor {
   private MuleVersion minMuleVersion;
   private Product requiredProduct;
   private Optional<Properties> deploymentProperties = empty();
+  private Set<String> configResources;
 
   /**
    * Creates a new descriptor for a named artifact
@@ -47,6 +52,7 @@ public class ArtifactDescriptor {
   public ArtifactDescriptor(String name) {
     checkArgument(!isEmpty(name), "Artifact name cannot be empty");
     this.name = name;
+    configResources = getDefaultConfigResources();
   }
 
   /**
@@ -59,6 +65,7 @@ public class ArtifactDescriptor {
     checkArgument(!isEmpty(name), "Artifact name cannot be empty");
     this.name = name;
     this.deploymentProperties = deploymentProperties;
+    configResources = getDefaultConfigResources();
   }
 
   public String getName() {
@@ -125,5 +132,25 @@ public class ArtifactDescriptor {
 
   public Optional<Properties> getDeploymentProperties() {
     return deploymentProperties;
+  }
+
+  protected Set<String> getDefaultConfigResources() {
+    return emptySet();
+  }
+
+  public Set<String> getConfigResources() {
+    return configResources;
+  }
+
+  public void setConfigResources(Set<String> configResources) {
+    this.configResources = sanitizePaths(configResources);
+  }
+
+  private Set<String> sanitizePaths(Set<String> configResources) {
+    if (configResources == null || configResources.isEmpty()) {
+      return configResources;
+    }
+
+    return configResources.stream().map(s -> separatorsToUnix(s)).collect(toSet());
   }
 }

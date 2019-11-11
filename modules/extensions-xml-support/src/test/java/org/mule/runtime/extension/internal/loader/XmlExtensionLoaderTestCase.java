@@ -49,7 +49,7 @@ import org.mule.runtime.api.meta.model.stereotype.StereotypeModel;
 import org.mule.runtime.api.meta.model.stereotype.StereotypeModelBuilder;
 import org.mule.runtime.api.meta.model.util.ExtensionWalker;
 import org.mule.runtime.config.internal.dsl.model.extension.xml.property.GlobalElementComponentModelModelProperty;
-import org.mule.runtime.config.internal.dsl.model.extension.xml.property.OperationComponentModelModelProperty;
+import org.mule.runtime.config.internal.dsl.model.extension.xml.property.ComponentModelModelProperty;
 import org.mule.runtime.core.api.extension.MuleExtensionModelProvider;
 import org.mule.runtime.extension.api.annotation.param.display.Placement;
 import org.mule.runtime.extension.api.loader.xml.XmlExtensionModelLoader;
@@ -116,8 +116,8 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     assertThat(operationModel.getAllParameterModels().get(2).getName(), is(TARGET_PARAMETER_NAME));
     assertThat(operationModel.getAllParameterModels().get(3).getName(), is(TARGET_VALUE_PARAMETER_NAME));
 
-    Optional<OperationComponentModelModelProperty> modelProperty =
-        operationModel.getModelProperty(OperationComponentModelModelProperty.class);
+    Optional<ComponentModelModelProperty> modelProperty =
+        operationModel.getModelProperty(ComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
     assertThat(modelProperty.get().getBodyComponentModel().getInnerComponents().size(), is(1));
 
@@ -156,8 +156,8 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     assertThat(operationModel.get().getAllParameterModels().get(2).getName(), is(TARGET_PARAMETER_NAME));
     assertThat(operationModel.get().getAllParameterModels().get(3).getName(), is(TARGET_VALUE_PARAMETER_NAME));
 
-    Optional<OperationComponentModelModelProperty> modelProperty =
-        operationModel.get().getModelProperty(OperationComponentModelModelProperty.class);
+    Optional<ComponentModelModelProperty> modelProperty =
+        operationModel.get().getModelProperty(ComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
     assertThat(modelProperty.get().getBodyComponentModel().getInnerComponents().size(), is(1));
   }
@@ -190,8 +190,8 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     assertThat(operationModel.get().getAllParameterModels().get(2).getName(), is(TARGET_VALUE_PARAMETER_NAME));
 
 
-    Optional<OperationComponentModelModelProperty> modelProperty =
-        operationModel.get().getModelProperty(OperationComponentModelModelProperty.class);
+    Optional<ComponentModelModelProperty> modelProperty =
+        operationModel.get().getModelProperty(ComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
     assertThat(modelProperty.get().getBodyComponentModel().getInnerComponents().size(), is(1));
   }
@@ -223,8 +223,8 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     assertThat(operation.getOutput().getType(), instanceOf(ObjectType.class));
     assertThat(((ObjectType) operation.getOutput().getType()).getFields().size(), is(3));
 
-    Optional<OperationComponentModelModelProperty> modelProperty =
-        operation.getModelProperty(OperationComponentModelModelProperty.class);
+    Optional<ComponentModelModelProperty> modelProperty =
+        operation.getModelProperty(ComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
     assertThat(modelProperty.get().getBodyComponentModel().getInnerComponents().size(), is(1));
   }
@@ -268,8 +268,8 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     assertThat(outputObjectType.getFields().size(), is(1));
     assertThat(outputObjectType.getFieldByName("Root0").isPresent(), is(true));
 
-    Optional<OperationComponentModelModelProperty> modelProperty =
-        operation.getModelProperty(OperationComponentModelModelProperty.class);
+    Optional<ComponentModelModelProperty> modelProperty =
+        operation.getModelProperty(ComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
     assertThat(modelProperty.get().getBodyComponentModel().getInnerComponents().size(), is(1));
   }
@@ -385,8 +385,8 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
                                           .newError(ANY).build())
                                       .build()));
 
-    Optional<OperationComponentModelModelProperty> modelProperty =
-        operationModel.getModelProperty(OperationComponentModelModelProperty.class);
+    Optional<ComponentModelModelProperty> modelProperty =
+        operationModel.getModelProperty(ComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
     assertThat(modelProperty.get().getBodyComponentModel().getInnerComponents().size(), is(2));
   }
@@ -426,8 +426,8 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
       final OperationModel operationModel = operationModelOptional.get();
       assertThat(operationModel.getAllParameterModels().size(), is(1));
 
-      Optional<OperationComponentModelModelProperty> modelProperty =
-          operationModel.getModelProperty(OperationComponentModelModelProperty.class);
+      Optional<ComponentModelModelProperty> modelProperty =
+          operationModel.getModelProperty(ComponentModelModelProperty.class);
       assertThat(modelProperty.isPresent(), is(true));
       assertThat(modelProperty.get().getBodyComponentModel().getInnerComponents().size(), is(1));
 
@@ -507,8 +507,8 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     assertThat(doSomethingOp.get().getAllParameterModels().get(2).getName(), is(TARGET_PARAMETER_NAME));
     assertThat(doSomethingOp.get().getAllParameterModels().get(3).getName(), is(TARGET_VALUE_PARAMETER_NAME));
 
-    Optional<OperationComponentModelModelProperty> modelProperty =
-        doSomethingOp.get().getModelProperty(OperationComponentModelModelProperty.class);
+    Optional<ComponentModelModelProperty> modelProperty =
+        doSomethingOp.get().getModelProperty(ComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
     assertThat(modelProperty.get().getBodyComponentModel().getInnerComponents().size(), is(2));
 

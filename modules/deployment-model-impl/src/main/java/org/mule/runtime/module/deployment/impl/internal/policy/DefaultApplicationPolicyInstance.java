@@ -109,7 +109,9 @@ public class DefaultApplicationPolicyInstance implements ApplicationPolicyInstan
             .setClassLoaderRepository(classLoaderRepository)
             .setArtifactPlugins(artifactPlugins)
             .setParentArtifact(application)
-            .setExtensionManagerFactory(new CompositeArtifactExtensionManagerFactory(application, extensionModelLoaderRepository,
+            //TODO PLG review this
+            .setExtensionManagerFactory(new CompositeArtifactExtensionManagerFactory(null, application,
+                                                                                     extensionModelLoaderRepository,
                                                                                      artifactPlugins,
                                                                                      new DefaultExtensionManagerFactory()))
             .setRuntimeComponentBuildingDefinitionProvider(runtimeComponentBuildingDefinitionProvider)

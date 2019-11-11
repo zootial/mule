@@ -8,13 +8,13 @@
 
     <capitalizedededede:config name="a-name" a-property="a value" _theUnderscoreProperty="underscore property value"/>
 
-    <flow name="testSetPayloadHardcodedFlow">
-        <capitalizedededede:set-payload-hardcoded-value config-ref="a-name"/>
-    </flow>
+    <!--<flow name="testSetPayloadHardcodedFlow">-->
+        <!--<capitalizedededede:set-payload-hardcoded-value config-ref="a-name"/>-->
+    <!--</flow>-->
 
-    <flow name="testUnderscoreSetPayloadWithParameter">
-        <capitalizedededede:_underscore-set-payload-with-parameter config-ref="a-name" _theUnderscore="underscore parameter value"/>
-    </flow>
+    <!--<flow name="testUnderscoreSetPayloadWithParameter">-->
+        <!--<capitalizedededede:_underscore-set-payload-with-parameter config-ref="a-name" _theUnderscore="underscore parameter value"/>-->
+    <!--</flow>-->
 
     <flow name="testSetPayloadWithNameParameter">
         <capitalizedededede:set-payload-with-name-parameter config-ref="a-name" name="the name parameter"/>

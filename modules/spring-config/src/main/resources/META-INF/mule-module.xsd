@@ -18,6 +18,16 @@
         </xsd:annotation>
     </xsd:element>
 
+    <xsd:complexType name="metadataKeyType">
+        <xsd:complexContent>
+            <xsd:extension base="mule:abstractExtensionType">
+                <xsd:sequence>
+                    <xsd:group ref="mule:messageProcessorOrMixedContentMessageProcessor" maxOccurs="unbounded"/>
+                </xsd:sequence>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+
     <xsd:element name="operation" type="operationType">
         <xsd:annotation>
             <xsd:documentation>
@@ -42,6 +52,9 @@
                             </xsd:sequence>
                         </xsd:complexType>
                     </xsd:element>
+                    <xsd:sequence>
+                        <xsd:element minOccurs="0" name="metadata-key" type="metadataKeyType"/>
+                    </xsd:sequence>
                     <xsd:element name="body">
                         <xsd:annotation>
                             <xsd:documentation>

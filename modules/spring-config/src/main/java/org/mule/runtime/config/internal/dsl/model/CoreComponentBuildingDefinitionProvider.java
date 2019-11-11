@@ -81,6 +81,7 @@ import org.mule.runtime.config.internal.factories.ErrorHandlerFactoryBean;
 import org.mule.runtime.config.internal.factories.ExpirationPolicyObjectFactory;
 import org.mule.runtime.config.internal.factories.FlowRefFactoryBean;
 import org.mule.runtime.config.internal.factories.ModuleOperationMessageProcessorChainFactoryBean;
+import org.mule.runtime.config.internal.factories.ModuleSourceMessageProcessorChainFactoryBean;
 import org.mule.runtime.config.internal.factories.OnErrorFactoryBean;
 import org.mule.runtime.config.internal.factories.ProcessorExpressionRouteFactoryBean;
 import org.mule.runtime.config.internal.factories.ProcessorRouteFactoryBean;
@@ -131,6 +132,7 @@ import org.mule.runtime.core.internal.processor.AsyncDelegateMessageProcessor;
 import org.mule.runtime.core.internal.processor.InvokerMessageProcessor;
 import org.mule.runtime.core.internal.processor.LoggerMessageProcessor;
 import org.mule.runtime.core.internal.processor.TryScope;
+import org.mule.runtime.core.internal.processor.chain.MetadataKeyOperation;
 import org.mule.runtime.core.internal.processor.simple.AddFlowVariableProcessor;
 import org.mule.runtime.core.internal.processor.simple.ParseTemplateProcessor;
 import org.mule.runtime.core.internal.processor.simple.RemoveFlowVariableProcessor;
@@ -172,6 +174,8 @@ import org.mule.runtime.core.internal.transformer.simple.StringAppendTransformer
 import org.mule.runtime.core.privileged.exception.TemplateOnErrorHandler;
 import org.mule.runtime.core.privileged.processor.AnnotatedProcessor;
 import org.mule.runtime.core.privileged.processor.IdempotentRedeliveryPolicy;
+import org.mule.runtime.core.privileged.processor.SourceBody;
+import org.mule.runtime.core.privileged.processor.SourceComponent;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChain;
 import org.mule.runtime.core.privileged.processor.objectfactory.MessageProcessorChainObjectFactory;
 import org.mule.runtime.core.privileged.processor.simple.AbstractAddVariablePropertyProcessor;
@@ -223,9 +227,12 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
   private static final String SUB_FLOW = "sub-flow";
   private static final String FLOW = "flow";
   private static final String FLOW_REF = "flow-ref";
+  private static final String SOURCE_REF = "source-ref";
   private static final String EXCEPTION_LISTENER_ATTRIBUTE = "exceptionListener";
   private static final String SCATTER_GATHER = "scatter-gather";
   private static final String PARALLEL_FOREACH = "parallel-foreach";
+  private static final String SOURCE = "source";
+  private static final String SOURCE_BODY = "body";
   private static final String FORK_JOIN_STRATEGY = "forkJoinStrategyFactory";
   private static final String COLLECT_LIST = "collect-list";
   private static final String ASYNC = "async";
@@ -340,6 +347,7 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
         .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
         .asPrototype().build());
     addModuleOperationChainParser(componentBuildingDefinitions);
+    addModuleSourceChainParser(componentBuildingDefinitions);
     componentBuildingDefinitions.add(baseDefinition.withIdentifier(SUB_FLOW)
         .withTypeDefinition(fromType(MessageProcessorChain.class))
         .withObjectFactoryType(SubflowMessageProcessorChainFactoryBean.class)
@@ -402,6 +410,21 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
             .build())
         .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
         .asScope().build());
+
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier(SOURCE)
+        .withTypeDefinition(fromType(SourceComponent.class))
+        .withSetterParameterDefinition("body",
+                                       fromChildConfiguration(SourceBody.class).build())
+        .asScope().asPrototype().build());
+
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier(SOURCE_BODY)
+        .withTypeDefinition(fromType(SourceBody.class))
+        .withSetterParameterDefinition("source",
+                                       fromChildConfiguration(MessageSource.class).build())
+        .withSetterParameterDefinition(MESSAGE_PROCESSORS,
+                                       fromChildCollectionConfiguration(Processor.class).build())
+        .asScope().build());
+
     componentBuildingDefinitions.add(baseDefinition
         .withIdentifier("collection").withTypeDefinition(fromType(String.class)).build());
     componentBuildingDefinitions
@@ -1142,6 +1165,7 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
         .withSetterParameterDefinition("moduleName", fromSimpleParameter("moduleName").build())
         .withSetterParameterDefinition("moduleOperation", fromSimpleParameter("moduleOperation").build())
         .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
+        .withSetterParameterDefinition("metadataKeyOperation", fromChildConfiguration(MetadataKeyOperation.class).build())
         .asPrototype().build());
 
     componentBuildingDefinitions.add(baseDefinition.withIdentifier("module-operation-properties")
@@ -1152,6 +1176,42 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
     componentBuildingDefinitions.add(baseDefinition.withIdentifier("module-operation-parameters")
         .withTypeDefinition(fromType(TreeMap.class)).build());
     componentBuildingDefinitions.add(baseDefinition.withIdentifier("module-operation-parameter-entry")
+        .withTypeDefinition(fromMapEntryType(String.class, String.class))
+        .build());
+
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier("metadata-key")
+        .withTypeDefinition(fromType(MetadataKeyOperation.class))
+        .withSetterParameterDefinition("processorChain", fromChildConfiguration(MessageProcessorChain.class).build())
+        .build());
+
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier("op")
+        .withTypeDefinition(fromType(MessageProcessorChain.class)).withObjectFactoryType(MessageProcessorChainFactoryBean.class)
+        .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
+        .build());
+  }
+
+  private void addModuleSourceChainParser(LinkedList<ComponentBuildingDefinition> componentBuildingDefinitions) {
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier("module-source-chain")
+        .withTypeDefinition(fromType(MessageSource.class))
+        .withObjectFactoryType(ModuleSourceMessageProcessorChainFactoryBean.class)
+        .withSetterParameterDefinition("properties", fromChildMapConfiguration(String.class, String.class)
+            .withWrapperIdentifier("module-source-properties").build())
+        .withSetterParameterDefinition("parameters", fromChildMapConfiguration(String.class, String.class)
+            .withWrapperIdentifier("module-source-parameters").build())
+        .withSetterParameterDefinition("moduleName", fromSimpleParameter("moduleName").build())
+        .withSetterParameterDefinition("moduleSource", fromSimpleParameter("moduleSource").build())
+        .withSetterParameterDefinition("source", fromChildConfiguration(MessageSource.class).build())
+        .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
+        .asPrototype().build());
+
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier("module-source-properties")
+        .withTypeDefinition(fromType(TreeMap.class)).build());
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier("module-source-property-entry")
+        .withTypeDefinition(fromMapEntryType(String.class, String.class))
+        .build());
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier("module-source-parameters")
+        .withTypeDefinition(fromType(TreeMap.class)).build());
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier("module-source-parameter-entry")
         .withTypeDefinition(fromMapEntryType(String.class, String.class))
         .build());
   }
