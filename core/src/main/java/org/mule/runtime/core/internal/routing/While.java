@@ -65,4 +65,8 @@ public class While extends AbstractMessageProcessorOwner implements Initialisabl
     nestedChain = buildNewChainWithListOfProcessors(processingStrategy, messageProcessors);
     super.initialise();
   }
+
+  public void setCollectionExpression(String expression) {
+    this.expression = expression;
+  }
 }

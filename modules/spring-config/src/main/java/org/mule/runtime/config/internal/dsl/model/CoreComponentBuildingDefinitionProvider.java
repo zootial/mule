@@ -133,17 +133,7 @@ import org.mule.runtime.core.internal.processor.simple.ParseTemplateProcessor;
 import org.mule.runtime.core.internal.processor.simple.RemoveFlowVariableProcessor;
 import org.mule.runtime.core.internal.processor.simple.SetPayloadMessageProcessor;
 import org.mule.runtime.core.internal.retry.ReconnectionConfig;
-import org.mule.runtime.core.internal.routing.ChoiceRouter;
-import org.mule.runtime.core.internal.routing.FirstSuccessful;
-import org.mule.runtime.core.internal.routing.Foreach;
-import org.mule.runtime.core.internal.routing.ForkJoinStrategyFactory;
-import org.mule.runtime.core.internal.routing.IdempotentMessageValidator;
-import org.mule.runtime.core.internal.routing.ParallelForEach;
-import org.mule.runtime.core.internal.routing.ProcessorExpressionRoute;
-import org.mule.runtime.core.internal.routing.ProcessorRoute;
-import org.mule.runtime.core.internal.routing.RoundRobin;
-import org.mule.runtime.core.internal.routing.ScatterGatherRouter;
-import org.mule.runtime.core.internal.routing.UntilSuccessful;
+import org.mule.runtime.core.internal.routing.*;
 import org.mule.runtime.core.internal.routing.forkjoin.CollectListForkJoinStrategyFactory;
 import org.mule.runtime.core.internal.security.PasswordBasedEncryptionStrategy;
 import org.mule.runtime.core.internal.security.SecretKeyEncryptionStrategy;
@@ -228,6 +218,7 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
   private static final String TRY = "try";
   private static final String UNTIL_SUCCESSFUL = "until-successful";
   private static final String FOREACH = "foreach";
+  private static final String WHILE = "while";
   private static final String FIRST_SUCCESSFUL = "first-successful";
   private static final String ROUND_ROBIN = "round-robin";
   private static final String CHOICE = "choice";
@@ -430,6 +421,10 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
         .withSetterParameterDefinition("batchSize", fromSimpleParameter("batchSize").build())
         .withSetterParameterDefinition("rootMessageVariableName", fromSimpleParameter("rootMessageVariableName").build())
         .withSetterParameterDefinition("counterVariableName", fromSimpleParameter("counterVariableName").build())
+        .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
+        .build());
+    componentBuildingDefinitions.add(baseDefinition.withIdentifier(WHILE).withTypeDefinition(fromType(While.class))
+        .withSetterParameterDefinition("collectionExpression", fromSimpleParameter("collection").build())
         .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
         .build());
     componentBuildingDefinitions.add(baseDefinition.withIdentifier(FIRST_SUCCESSFUL)
