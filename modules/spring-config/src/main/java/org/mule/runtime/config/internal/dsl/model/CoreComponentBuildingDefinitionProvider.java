@@ -424,7 +424,7 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
         .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
         .build());
     componentBuildingDefinitions.add(baseDefinition.withIdentifier(WHILE).withTypeDefinition(fromType(While.class))
-        .withSetterParameterDefinition("collectionExpression", fromSimpleParameter("collection").build())
+        .withSetterParameterDefinition("expression", fromSimpleParameter("collection").build())
         .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
         .build());
     componentBuildingDefinitions.add(baseDefinition.withIdentifier(FIRST_SUCCESSFUL)
