@@ -61,7 +61,13 @@ class WhileRouter {
         .doOnNext(event -> {
           // Inject event into retrial execution chain
           inflightEvents.getAndIncrement();
-          innerRecorder.next(event);
+          if (iterateAgain.test(event)) {
+            innerRecorder.next(event);
+          } else {
+            downstreamRecorder.next(right(Throwable.class, event));
+            completeRouterIfNecessary();
+          }
+
         })
         .doOnComplete(() -> {
           if (inflightEvents.get() == 0) {
@@ -82,8 +88,8 @@ class WhileRouter {
             innerRecorder.next(successfulEvent);
           } else {
             downstreamRecorder.next(right(Throwable.class, successfulEvent));
+            completeRouterIfNecessary();
           }
-          completeRouterIfNecessary();
         });
 
     // Downstream chain. Unpacks and publishes successful events and errors downstream.
