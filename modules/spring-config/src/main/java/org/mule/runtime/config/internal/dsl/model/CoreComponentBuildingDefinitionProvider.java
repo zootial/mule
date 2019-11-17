@@ -417,14 +417,14 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
             .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
             .build());
     componentBuildingDefinitions.add(baseDefinition.withIdentifier(FOREACH).withTypeDefinition(fromType(Foreach.class))
-        .withSetterParameterDefinition("expression", fromSimpleParameter("expression").build())
+        .withSetterParameterDefinition("collectionExpression", fromSimpleParameter("collection").build())
         .withSetterParameterDefinition("batchSize", fromSimpleParameter("batchSize").build())
         .withSetterParameterDefinition("rootMessageVariableName", fromSimpleParameter("rootMessageVariableName").build())
         .withSetterParameterDefinition("counterVariableName", fromSimpleParameter("counterVariableName").build())
         .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
         .build());
     componentBuildingDefinitions.add(baseDefinition.withIdentifier(WHILE).withTypeDefinition(fromType(While.class))
-        .withSetterParameterDefinition("expression", fromSimpleParameter("collection").build())
+        .withSetterParameterDefinition("expression", fromSimpleParameter("expression").build())
         .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
         .build());
     componentBuildingDefinitions.add(baseDefinition.withIdentifier(FIRST_SUCCESSFUL)
