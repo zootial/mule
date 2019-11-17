@@ -2465,6 +2465,25 @@
         </xsd:complexContent>
     </xsd:complexType>
 
+    <xsd:element name="while" type="whileProcessorType"
+                 substitutionGroup="abstract-intercepting-message-processor"/>
+    <xsd:complexType name="whileProcessorType">
+        <xsd:complexContent>
+            <xsd:extension base="abstractInterceptingMessageProcessorType">
+                <xsd:sequence>
+                    <xsd:group ref="messageProcessorOrMixedContentMessageProcessor" minOccurs="1" maxOccurs="unbounded"/>
+                </xsd:sequence>
+                <xsd:attribute name="collection" use="optional" type="xsd:string">
+                    <xsd:annotation>
+                        <xsd:documentation>
+                            Expression that defines the collection to iterate over.
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:attribute>
+            </xsd:extension>
+        </xsd:complexContent>
+    </xsd:complexType>
+
     <xsd:element name="raise-error" type="raiseErrorType" substitutionGroup="abstract-message-processor">
         <xsd:annotation>
             <xsd:documentation>
