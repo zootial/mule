@@ -66,7 +66,7 @@ public class While extends AbstractMessageProcessorOwner implements Initialisabl
     super.initialise();
   }
 
-  public void setCollectionExpression(String expression) {
+  public void setExpression(String expression) {
     this.expression = expression;
   }
 }

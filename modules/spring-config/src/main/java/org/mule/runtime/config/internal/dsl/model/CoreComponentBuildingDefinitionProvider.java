@@ -417,7 +417,7 @@ public class CoreComponentBuildingDefinitionProvider implements ComponentBuildin
             .withSetterParameterDefinition(MESSAGE_PROCESSORS, fromChildCollectionConfiguration(Processor.class).build())
             .build());
     componentBuildingDefinitions.add(baseDefinition.withIdentifier(FOREACH).withTypeDefinition(fromType(Foreach.class))
-        .withSetterParameterDefinition("collectionExpression", fromSimpleParameter("collection").build())
+        .withSetterParameterDefinition("expression", fromSimpleParameter("expression").build())
         .withSetterParameterDefinition("batchSize", fromSimpleParameter("batchSize").build())
         .withSetterParameterDefinition("rootMessageVariableName", fromSimpleParameter("rootMessageVariableName").build())
         .withSetterParameterDefinition("counterVariableName", fromSimpleParameter("counterVariableName").build())
