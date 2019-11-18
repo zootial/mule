@@ -6,6 +6,7 @@
  */
 package org.mule.runtime.core.internal.routing;
 
+import static org.mule.runtime.api.functional.Either.left;
 import static org.mule.runtime.api.functional.Either.right;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.applyWithChildContext;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -15,6 +16,7 @@ import static reactor.core.publisher.Mono.subscriberContext;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.functional.Either;
 import org.mule.runtime.core.api.event.CoreEvent;
+import org.mule.runtime.core.internal.exception.MessagingException;
 import org.mule.runtime.core.internal.rx.FluxSinkRecorder;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChain;
 import org.reactivestreams.Publisher;
@@ -90,6 +92,9 @@ class WhileRouter {
             downstreamRecorder.next(right(Throwable.class, successfulEvent));
             completeRouterIfNecessary();
           }
+        }).onErrorContinue(MessagingException.class, (error, offendingEvent) -> {
+          downstreamRecorder.next(left(error, CoreEvent.class));
+          completeRouterIfNecessary();
         });
 
     // Downstream chain. Unpacks and publishes successful events and errors downstream.

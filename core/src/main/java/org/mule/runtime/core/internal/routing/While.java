@@ -31,7 +31,7 @@ import static org.mule.runtime.core.privileged.processor.MessageProcessors.*;
  */
 public class While extends AbstractMessageProcessorOwner implements Initialisable, Scope {
 
-  private static final String DEFAULT_CONDITION_EXPRESSION = "#[payload]";
+  static final String DEFAULT_CONDITION_EXPRESSION = "#[payload]";
 
   @Inject
   private ExpressionManager expressionManager;
