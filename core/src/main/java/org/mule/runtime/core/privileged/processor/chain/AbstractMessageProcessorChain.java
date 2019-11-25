@@ -73,6 +73,7 @@ import javax.inject.Inject;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
+
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
@@ -370,7 +371,13 @@ abstract class AbstractMessageProcessorChain extends AbstractExecutableComponent
   private Function<MessagingException, MessagingException> resolveMessagingException(Processor processor) {
     if (processor instanceof Component) {
       MessagingExceptionResolver exceptionResolver = new MessagingExceptionResolver((Component) processor);
-      return exception -> exceptionResolver.resolve(exception, muleContext);
+      return exception -> {
+        if (exception instanceof MessagingException && exception.getEvent().getError().isPresent()) {
+          return exception;
+        } else {
+          return exceptionResolver.resolve(exception, muleContext);
+        }
+      };
     } else {
       return exception -> exception;
     }
