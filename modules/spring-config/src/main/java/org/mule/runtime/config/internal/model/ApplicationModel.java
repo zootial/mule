@@ -30,7 +30,7 @@ import static org.mule.runtime.config.api.dsl.CoreDslConstants.MULE_DOMAIN_IDENT
 import static org.mule.runtime.config.api.dsl.CoreDslConstants.MULE_EE_DOMAIN_IDENTIFIER;
 import static org.mule.runtime.config.api.dsl.CoreDslConstants.MULE_IDENTIFIER;
 import static org.mule.runtime.config.api.dsl.CoreDslConstants.MULE_ROOT_ELEMENT;
-import static org.mule.runtime.config.internal.dsl.spring.BeanDefinitionFactory.SOURCE_TYPE;
+import static org.mule.runtime.config.internal.MuleArtifactContext.SOURCE_TYPE;
 import static org.mule.runtime.config.internal.dsl.spring.ComponentModelHelper.resolveComponentType;
 import static org.mule.runtime.core.api.el.ExpressionManager.DEFAULT_EXPRESSION_PREFIX;
 import static org.mule.runtime.core.api.exception.Errors.Identifiers.ANY_IDENTIFIER;

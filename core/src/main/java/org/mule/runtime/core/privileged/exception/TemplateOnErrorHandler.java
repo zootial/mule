@@ -14,12 +14,10 @@ import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.toList;
 import static org.mule.runtime.api.component.ComponentIdentifier.buildFromStringRepresentation;
-import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.ERROR_HANDLER;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.mule.runtime.api.notification.EnrichedNotificationInfo.createInfo;
 import static org.mule.runtime.api.notification.ErrorHandlerNotification.PROCESS_END;
 import static org.mule.runtime.api.notification.ErrorHandlerNotification.PROCESS_START;
-import static org.mule.runtime.core.api.config.MuleDeploymentProperties.MULE_LAZY_INIT_DEPLOYMENT_PROPERTY;
 import static org.mule.runtime.core.api.rx.Exceptions.unwrap;
 import static org.mule.runtime.core.internal.component.ComponentAnnotations.updateRootContainerName;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.getProcessingStrategy;
@@ -53,8 +51,7 @@ import org.mule.runtime.core.internal.message.DefaultExceptionPayload;
 import org.mule.runtime.core.internal.message.InternalMessage;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChain;
 import org.mule.runtime.core.privileged.routing.requestreply.ReplyToPropertyRequestReplyReplier;
-
-import org.reactivestreams.Publisher;
+import org.mule.runtime.core.privileged.transaction.TransactionAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +62,7 @@ import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
-import org.mule.runtime.core.privileged.transaction.TransactionAdapter;
+import org.reactivestreams.Publisher;
 
 @NoExtend
 public abstract class TemplateOnErrorHandler extends AbstractExceptionListener
@@ -75,9 +72,6 @@ public abstract class TemplateOnErrorHandler extends AbstractExceptionListener
 
   @Inject
   protected ConfigurationComponentLocator locator;
-
-  @Inject
-  private ConfigurationProperties configurationProperties;
 
   protected Optional<Location> flowLocation = empty();
   private MessageProcessorChain configuredMessageProcessors;
@@ -228,7 +222,7 @@ public abstract class TemplateOnErrorHandler extends AbstractExceptionListener
       configuredMessageProcessors.setMuleContext(muleContext);
     }
 
-    errorTypeMatcher = createErrorType(muleContext.getErrorTypeRepository(), errorType, configurationProperties);
+    errorTypeMatcher = createErrorType(muleContext.getErrorTypeRepository(), errorType);
     if (!inDefaultErrorHandler()) {
       errorHandlerLocation = this.location.getLocation();
       isLocalErrorHandlerLocation = ERROR_HANDLER_LOCATION_PATTERN.matcher(errorHandlerLocation).find();
@@ -239,8 +233,13 @@ public abstract class TemplateOnErrorHandler extends AbstractExceptionListener
     }
   }
 
+  @Deprecated
   public static ErrorTypeMatcher createErrorType(ErrorTypeRepository errorTypeRepository, String errorTypeNames,
                                                  ConfigurationProperties configurationProperties) {
+    return createErrorType(errorTypeRepository, errorTypeNames);
+  }
+
+  public static ErrorTypeMatcher createErrorType(ErrorTypeRepository errorTypeRepository, String errorTypeNames) {
     if (errorTypeNames == null) {
       return null;
     }
@@ -250,42 +249,11 @@ public abstract class TemplateOnErrorHandler extends AbstractExceptionListener
       final ComponentIdentifier errorTypeComponentIdentifier = buildFromStringRepresentation(parsedIdentifier);
       return new SingleErrorTypeMatcher(errorTypeRepository.lookupErrorType(errorTypeComponentIdentifier)
           .orElseGet(() -> {
-            // When lazy init deployment is used an error-mapping may not be initialized due to the component that declares it
-            // could not be part of the minimal application model. So, whenever we found that scenario we have to create the
-            // errorType if not present in the repository already.
-            if (configurationProperties.resolveBooleanProperty(MULE_LAZY_INIT_DEPLOYMENT_PROPERTY).orElse(false)) {
-              return errorTypeRepository.addErrorType(errorTypeComponentIdentifier, errorTypeRepository.getAnyErrorType());
-            }
             throw new MuleRuntimeException(createStaticMessage("Could not find ErrorType for the given identifier: '%s'",
                                                                parsedIdentifier));
           }));
     }).collect(toList());
     return new DisjunctiveErrorTypeMatcher(matchers);
-  }
-
-  /**
-   * @deprecated Use {@link #createErrorType(ErrorTypeRepository, String, ConfigurationProperties)} which handles correctly
-   * lazy mule artifact contexts.
-   */
-  @Deprecated
-  public static ErrorTypeMatcher createErrorType(ErrorTypeRepository errorTypeRepository, String errorTypeNames) {
-    return createErrorType(errorTypeRepository, errorTypeNames, new ConfigurationProperties() {
-
-      @Override
-      public <T> Optional<T> resolveProperty(String propertyKey) {
-        return Optional.empty();
-      }
-
-      @Override
-      public Optional<Boolean> resolveBooleanProperty(String property) {
-        return Optional.empty();
-      }
-
-      @Override
-      public Optional<String> resolveStringProperty(String property) {
-        return Optional.empty();
-      }
-    });
   }
 
   public void setWhen(String when) {
