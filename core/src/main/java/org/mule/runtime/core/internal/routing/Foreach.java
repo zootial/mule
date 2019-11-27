@@ -7,21 +7,25 @@
 package org.mule.runtime.core.internal.routing;
 
 import static java.util.Collections.singletonList;
+import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static org.mule.runtime.api.metadata.DataType.fromObject;
 import static org.mule.runtime.core.api.event.CoreEvent.builder;
 import static org.mule.runtime.core.internal.routing.ExpressionSplittingStrategy.DEFAULT_SPLIT_EXPRESSION;
+import static org.mule.runtime.core.privileged.processor.MessageProcessors.applyWithChildContext;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.buildNewChainWithListOfProcessors;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.getProcessingStrategy;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.newChildContext;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.processToApply;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.processWithChildContext;
+import static reactor.core.Exceptions.propagate;
 import static reactor.core.publisher.Flux.from;
 import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.empty;
 import static reactor.core.publisher.Mono.just;
 import org.mule.runtime.api.exception.MuleException;
+import org.mule.runtime.api.functional.Either;
 import org.mule.runtime.api.lifecycle.Initialisable;
 import org.mule.runtime.api.lifecycle.InitialisationException;
 import org.mule.runtime.api.message.Message;
@@ -36,6 +40,7 @@ import org.mule.runtime.core.internal.exception.MessagingException;
 import org.mule.runtime.core.internal.routing.outbound.EventBuilderConfigurer;
 import org.mule.runtime.core.internal.routing.outbound.EventBuilderConfigurerIterator;
 import org.mule.runtime.core.internal.routing.outbound.EventBuilderConfigurerList;
+import org.mule.runtime.core.internal.rx.FluxSinkRecorder;
 import org.mule.runtime.core.privileged.event.BaseEventContext;
 import org.mule.runtime.core.privileged.processor.Scope;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChain;
@@ -52,6 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -91,6 +97,46 @@ public class Foreach extends AbstractMessageProcessorOwner implements Initialisa
 
   @Override
   public Publisher<CoreEvent> apply(Publisher<CoreEvent> publisher) {
+
+    FluxSinkRecorder<CoreEvent> innerRecorder = new FluxSinkRecorder<>();
+    FluxSinkRecorder<Either<Throwable, CoreEvent>> downstreamRecorder = new FluxSinkRecorder<>();
+
+    Flux<CoreEvent> upstreamFlux = Flux.from(publisher)
+        .doOnNext(event -> {
+          // Create ForEachContext, with the Iterator<TypedValue> calculated
+          // Save it inside the internalParameters of the event
+          // Inject it into the inner flux
+          innerRecorder.next(event);
+        });
+
+    Flux<CoreEvent> innerFlux = Flux.create(innerRecorder)
+        .map(event -> {
+          // Create a mapper in assembly that that either buffers the events, by taking from the iterable;
+          // or takes one from it and starts processing
+          return event;
+        })
+        .transform(innerPub -> applyWithChildContext(innerPub, nestedChain, of(Foreach.this.getLocation())))
+        .doOnNext(evt -> {
+          // Check if I have more to iterate:
+          // YES - Inject again inside innerFlux. The Iterator automatically keeps track of the following elements
+          // NO - Propagate the first inside event down to downstreamFlux
+        });
+
+    Flux<CoreEvent> downstreamFlux = Flux.create(downstreamRecorder)
+        .map(either -> {
+          if (either.isLeft()) {
+            throw propagate(either.getLeft());
+          } else {
+            return either.getRight();
+          }
+        })
+        .map(evt -> {
+          // Restore the forEach-specific variables
+          return evt;
+        });
+
+
+
     return from(publisher)
         .doOnNext(event -> {
           if (expression.equals(DEFAULT_SPLIT_EXPRESSION)
