@@ -77,6 +77,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -227,6 +228,7 @@ public abstract class AbstractPipeline extends AbstractFlowConstruct implements 
         @Override
         public Publisher<CoreEvent> apply(Publisher<CoreEvent> publisher) {
           return from(publisher)
+              //              .transform((Flow) AbstractPipeline.this);
               .transform(dispatchToFlow());
         }
       });
@@ -245,7 +247,11 @@ public abstract class AbstractPipeline extends AbstractFlowConstruct implements 
   private ReactiveProcessor dispatchToFlow() {
     return publisher -> from(publisher)
         .doOnNext(assertStarted())
-        .flatMap(routeThroughProcessingStrategy())
+        .flatMap(event -> {
+          return routeThroughProcessingStrategy().apply(event);
+        })
+        .log(AbstractPipeline.class.getName() + ".dispatchToFlow.")
+        .cast(CoreEvent.class)
         // This replaces the onErrorContinue key if it exists, to prevent it from being propagated within the flow
         .compose(clearSubscribersErrorStrategy());
   }

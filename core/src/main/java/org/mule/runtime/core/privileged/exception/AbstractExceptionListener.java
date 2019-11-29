@@ -236,4 +236,9 @@ public abstract class AbstractExceptionListener extends AbstractMessageProcessor
   public void setStatistics(FlowConstructStatistics statistics) {
     this.statistics = statistics;
   }
+
+  @Override
+  public String toString() {
+    return this.getClass().getSimpleName() + (getLocation() != null ? " @ " + getLocation().getLocation() : "");
+  }
 }

@@ -29,6 +29,8 @@ import static org.mule.runtime.core.internal.event.EventQuickCopy.quickCopy;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.applyWithChildContext;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.getProcessingStrategy;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.newChain;
+import static org.slf4j.LoggerFactory.getLogger;
+
 import org.mule.api.annotation.NoExtend;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.ConfigurationProperties;
@@ -71,6 +73,8 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -79,6 +83,7 @@ import reactor.core.publisher.Mono;
 public abstract class TemplateOnErrorHandler extends AbstractExceptionListener
     implements MessagingExceptionHandlerAcceptor {
 
+  private static final Logger LOGGER = getLogger(TemplateOnErrorHandler.class);
 
   private static final Pattern ERROR_HANDLER_LOCATION_PATTERN = compile(".*/.*/.*");
   private static final String ERROR_EXCEPTION = "error.exception.";
@@ -143,6 +148,8 @@ public abstract class TemplateOnErrorHandler extends AbstractExceptionListener
   @Override
   public void routeError(Exception error, Consumer<CoreEvent> continueCallback,
                          Consumer<Throwable> propagateCallback) {
+    LOGGER.info("Routing error in '" + this.toString() + "'...");
+
     // All calling methods will end up transforming any error class other than MessagingException into that one
     MessagingException messagingError = (MessagingException) error;
     CoreEvent failureEvent = messagingError.getEvent();
@@ -452,7 +459,7 @@ public abstract class TemplateOnErrorHandler extends AbstractExceptionListener
    * {@link org.mule.runtime.core.api.construct.Flow} or {@link org.mule.runtime.core.internal.processor.TryScope} executing this
    * ErrorHandler. This is intended to be used when having references to Global ErrorHandlers, since each instance reference
    * should run with the processing strategy defined by the flow referencing it, and be able to rollback transactions.
-   * 
+   *
    * @param location
    * @return copy of this ErrorHandler with location to retrieve {@link ProcessingStrategy}
    *

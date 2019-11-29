@@ -99,7 +99,8 @@ public class PolicyNextActionMessageProcessor extends AbstractComponent implemen
           onExecuteNextErrorConsumer.accept(error);
           return error;
         })
-        .log(PolicyNextActionMessageProcessor.class.getName() + ".");
+    // .log(PolicyNextActionMessageProcessor.class.getName() + ".")
+    ;
   }
 
   private Consumer<CoreEvent> pushAfterNextFlowStackElement() {

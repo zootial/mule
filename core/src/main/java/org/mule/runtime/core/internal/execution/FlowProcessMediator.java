@@ -31,6 +31,7 @@ import static org.mule.runtime.core.privileged.processor.MessageProcessors.apply
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.processToApply;
 import static org.slf4j.LoggerFactory.getLogger;
 import static reactor.core.publisher.Flux.from;
+
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.execution.CompletableCallback;
 import org.mule.runtime.api.component.location.ComponentLocation;
@@ -87,6 +88,8 @@ import javax.xml.namespace.QName;
 
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
+
+import reactor.core.publisher.Flux;
 
 /**
  * Routes a message through a Flow and coordinates error handling and response emitting.
@@ -530,10 +533,11 @@ public class FlowProcessMediator implements Initialisable {
 
     @Override
     public Publisher<CoreEvent> apply(Publisher<CoreEvent> publisher) {
-      return applyWithChildContext(from(publisher),
-                                   template::routeEventAsync,
-                                   Optional.empty(),
-                                   flowConstruct.getExceptionListener());
+      return Flux.from(applyWithChildContext(from(publisher),
+                                             template::routeEventAsync,
+                                             Optional.empty(),
+                                             flowConstruct.getExceptionListener()))
+          .log(FlowProcessMediator.class.getName() + ".FlowProcessor.");
     }
 
     @Override
