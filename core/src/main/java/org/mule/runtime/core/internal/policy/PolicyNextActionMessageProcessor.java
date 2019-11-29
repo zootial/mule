@@ -95,7 +95,11 @@ public class PolicyNextActionMessageProcessor extends AbstractComponent implemen
                               getPolicyId());
         })
         .map(policyEventMapper::fromPolicyNext)
-        .onErrorContinue(MessagingException.class, (error, v) -> onExecuteNextErrorConsumer.accept(error));
+        .onErrorMap(MessagingException.class, error -> {
+          onExecuteNextErrorConsumer.accept(error);
+          return error;
+        })
+        .log(PolicyNextActionMessageProcessor.class.getName() + ".");
   }
 
   private Consumer<CoreEvent> pushAfterNextFlowStackElement() {
