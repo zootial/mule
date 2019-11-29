@@ -15,7 +15,6 @@ import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.internal.context.notification.DefaultFlowCallStack;
 import org.mule.runtime.core.internal.exception.MessagingException;
 import org.mule.runtime.core.internal.message.InternalEvent;
-import org.mule.runtime.core.privileged.event.BaseEventContext;
 
 import java.util.Set;
 import java.util.function.Consumer;
@@ -52,7 +51,7 @@ public class OnExecuteNextErrorConsumer implements Consumer<Throwable> {
 
       pushAfterNextFlowStackElement().accept(newEvent);
 
-      ((BaseEventContext) newEvent.getContext()).error(error);
+      // ((BaseEventContext) newEvent.getContext()).error(error);
     }
   }
 

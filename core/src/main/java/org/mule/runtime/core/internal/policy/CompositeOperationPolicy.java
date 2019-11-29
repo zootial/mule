@@ -11,20 +11,16 @@ import static com.google.common.collect.ImmutableMap.of;
 import static java.lang.Runtime.getRuntime;
 import static java.util.Collections.singletonMap;
 import static java.util.Optional.of;
-import static org.mule.runtime.api.functional.Either.left;
-import static org.mule.runtime.api.functional.Either.right;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.mule.runtime.core.api.util.concurrent.FunctionalReadWriteLock.readWriteLock;
 import static org.mule.runtime.core.internal.event.EventQuickCopy.quickCopy;
-import static org.mule.runtime.core.internal.util.rx.RxUtils.subscribeFluxOnPublisherSubscription;
+import static org.mule.runtime.core.internal.util.rx.RxUtils.withDownstreamErrorPropagation;
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.newChildContext;
-import static reactor.core.Exceptions.propagate;
 import static reactor.core.publisher.Flux.create;
 import static reactor.core.publisher.Flux.from;
 
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.functional.Either;
 import org.mule.runtime.api.lifecycle.Disposable;
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.policy.OperationPolicyParametersTransformer;
@@ -160,8 +156,7 @@ public class CompositeOperationPolicy
    */
   @Override
   protected Publisher<CoreEvent> applyNextOperation(Publisher<CoreEvent> eventPub, Policy lastPolicy) {
-    FluxSinkRecorder<Either<CoreEvent, Throwable>> sinkRecorder = new FluxSinkRecorder<>();
-    final Flux<CoreEvent> doOnNext = from(eventPub)
+    return from(withDownstreamErrorPropagation(eventPub, (innerPub, callback) -> from(innerPub)
         .doOnNext(event -> {
           OperationExecutionFunction operationExecutionFunction =
               ((InternalEvent) event).getInternalParameter(POLICY_OPERATION_OPERATION_EXEC_FUNCTION);
@@ -170,14 +165,12 @@ public class CompositeOperationPolicy
 
             @Override
             public void complete(Object value) {
-              sinkRecorder.next(left((CoreEvent) value, Throwable.class));
+              callback.complete((CoreEvent) value);
             }
 
             @Override
             public void error(Throwable e) {
-              // if `sink.error` is called here, it will cancel the flux altogether. That's why an `Either` is used here, so the
-              // error can be propagated afterwards in a way consistent with our expected error handling.
-              sinkRecorder.next(right(CoreEvent.class, mapError(e, event)));
+              callback.error(mapError(e, event));
             }
 
             private Throwable mapError(Throwable t, CoreEvent event) {
@@ -188,16 +181,7 @@ public class CompositeOperationPolicy
               return t;
             }
           });
-        })
-        .doOnComplete(() -> sinkRecorder.complete());
-
-    return subscribeFluxOnPublisherSubscription(create(sinkRecorder)
-        .map(result -> {
-          result.applyRight(t -> {
-            throw propagate(t);
-          });
-          return result.getLeft();
-        }), doOnNext)
+        })))
             .map(response -> quickCopy(response, singletonMap(POLICY_OPERATION_NEXT_OPERATION_RESPONSE, response)));
   }
 
