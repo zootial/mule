@@ -21,8 +21,6 @@ import static org.mule.runtime.config.api.dsl.CoreDslConstants.CONFIGURATION_IDE
 import static org.mule.runtime.config.internal.dsl.spring.BeanDefinitionFactory.SPRING_SINGLETON_OBJECT;
 import static org.mule.runtime.config.internal.dsl.spring.ComponentModelHelper.updateAnnotationValue;
 import static org.mule.runtime.config.internal.parsers.generic.AutoIdUtils.uniqueValue;
-import static org.mule.runtime.config.internal.util.ComponentBuildingDefinitionUtils.getArtifactComponentBuildingDefinitions;
-import static org.mule.runtime.config.internal.util.ComponentBuildingDefinitionUtils.getExtensionModelsComponentBuildingDefinitions;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_MULE_CONFIGURATION;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_MULE_CONTEXT;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_REGISTRY;
@@ -85,7 +83,6 @@ import org.mule.runtime.core.internal.registry.MuleRegistryHelper;
 import org.mule.runtime.core.internal.registry.TransformerResolver;
 import org.mule.runtime.core.internal.util.DefaultResourceLocator;
 import org.mule.runtime.dsl.api.ConfigResource;
-import org.mule.runtime.dsl.api.component.ComponentBuildingDefinitionProvider;
 import org.mule.runtime.dsl.api.xml.XmlNamespaceInfoProvider;
 import org.mule.runtime.dsl.api.xml.parser.ConfigFile;
 import org.mule.runtime.dsl.api.xml.parser.ParsingPropertyResolver;
@@ -122,7 +119,6 @@ import org.springframework.beans.factory.support.ManagedMap;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.annotation.ConfigurationClassPostProcessor;
 import org.springframework.context.annotation.ContextAnnotationAutowireCandidateResolver;
-import org.springframework.context.expression.StandardBeanExpressionResolver;
 import org.springframework.context.support.AbstractRefreshableConfigApplicationContext;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -139,8 +135,7 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
 
   public static final String INNER_BEAN_PREFIX = "(inner bean)";
 
-  protected final ComponentBuildingDefinitionRegistry componentBuildingDefinitionRegistry =
-      new ComponentBuildingDefinitionRegistry();
+  protected final ComponentBuildingDefinitionRegistry componentBuildingDefinitionRegistry;
   private final OptionalObjectsController optionalObjectsController;
   private final Map<String, String> artifactProperties;
   private final ArtifactDeclaration artifactDeclaration;
@@ -185,25 +180,11 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
   public MuleArtifactContext(MuleContext muleContext, ConfigResource[] artifactConfigResources,
                              ArtifactDeclaration artifactDeclaration, OptionalObjectsController optionalObjectsController,
                              Map<String, String> artifactProperties, ArtifactType artifactType,
-                             List<ClassLoader> pluginsClassLoaders,
+                             ComponentBuildingDefinitionRegistry componentBuildingDefinitionRegistry,
                              Optional<ConfigurationProperties> parentConfigurationProperties,
                              boolean disableXmlValidations,
-                             ComponentBuildingDefinitionProvider runtimeComponentBuildingDefinitionProvider,
                              LockFactory runtimeLockFactory)
       throws BeansException {
-    this(muleContext, artifactConfigResources, artifactDeclaration, optionalObjectsController,
-         parentConfigurationProperties, artifactProperties,
-         artifactType, pluginsClassLoaders, disableXmlValidations,
-         runtimeComponentBuildingDefinitionProvider, runtimeLockFactory);
-  }
-
-  public MuleArtifactContext(MuleContext muleContext, ConfigResource[] artifactConfigResources,
-                             ArtifactDeclaration artifactDeclaration, OptionalObjectsController optionalObjectsController,
-                             Optional<ConfigurationProperties> parentConfigurationProperties,
-                             Map<String, String> artifactProperties, ArtifactType artifactType,
-                             List<ClassLoader> pluginsClassLoaders, boolean disableXmlValidations,
-                             ComponentBuildingDefinitionProvider runtimeComponentBuildingDefinitionProvider,
-                             LockFactory runtimeLockFactory) {
     checkArgument(optionalObjectsController != null, "optionalObjectsController cannot be null");
     this.muleContext = (MuleContextWithRegistry) muleContext;
     this.artifactConfigResources = artifactConfigResources;
@@ -217,17 +198,8 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
     this.resourceLocator = new DefaultResourceLocator();
     originalRegistry = ((MuleRegistryHelper) getMuleRegistry()).getDelegate();
 
-    runtimeComponentBuildingDefinitionProvider.getComponentBuildingDefinitions()
-        .forEach(componentBuildingDefinitionRegistry::register);
-
-    extensionManager = muleContext.getExtensionManager();
-    getExtensionModelsComponentBuildingDefinitions(serviceRegistry, getExtensions())
-        .forEach(componentBuildingDefinitionRegistry::register);
-
-    for (ClassLoader pluginArtifactClassLoader : pluginsClassLoaders) {
-      getArtifactComponentBuildingDefinitions(serviceRegistry, pluginArtifactClassLoader)
-          .forEach(componentBuildingDefinitionRegistry::register);
-    }
+    this.componentBuildingDefinitionRegistry = componentBuildingDefinitionRegistry;
+    this.extensionManager = muleContext.getExtensionManager();
 
     this.beanDefinitionFactory =
         new BeanDefinitionFactory(componentBuildingDefinitionRegistry, muleContext.getErrorTypeRepository());

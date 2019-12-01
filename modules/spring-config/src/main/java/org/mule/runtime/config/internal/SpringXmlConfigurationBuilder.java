@@ -7,10 +7,13 @@
 package org.mule.runtime.config.internal;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.apache.commons.lang3.ArrayUtils.isEmpty;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
+import static org.mule.runtime.config.internal.util.ComponentBuildingDefinitionUtils.getArtifactComponentBuildingDefinitions;
+import static org.mule.runtime.config.internal.util.ComponentBuildingDefinitionUtils.getExtensionModelsComponentBuildingDefinitions;
 import static org.mule.runtime.core.api.config.bootstrap.ArtifactType.APP;
 import static org.mule.runtime.core.api.config.bootstrap.ArtifactType.DOMAIN;
 import static org.mule.runtime.core.internal.config.RuntimeComponentBuildingDefinitionsUtil.getRuntimeComponentBuildingDefinitionProvider;
@@ -21,6 +24,7 @@ import org.mule.runtime.api.component.ConfigurationProperties;
 import org.mule.runtime.api.lifecycle.Startable;
 import org.mule.runtime.api.lock.LockFactory;
 import org.mule.runtime.app.declaration.api.ArtifactDeclaration;
+import org.mule.runtime.config.api.dsl.model.ComponentBuildingDefinitionRegistry;
 import org.mule.runtime.config.internal.artifact.SpringArtifactContext;
 import org.mule.runtime.config.internal.dsl.model.ConfigurationDependencyResolver;
 import org.mule.runtime.core.api.MuleContext;
@@ -28,7 +32,10 @@ import org.mule.runtime.core.api.config.ConfigurationBuilder;
 import org.mule.runtime.core.api.config.ConfigurationException;
 import org.mule.runtime.core.api.config.bootstrap.ArtifactType;
 import org.mule.runtime.core.api.config.builders.AbstractResourceConfigurationBuilder;
+import org.mule.runtime.core.api.extension.ExtensionManager;
 import org.mule.runtime.core.api.lifecycle.LifecycleManager;
+import org.mule.runtime.core.api.registry.ServiceRegistry;
+import org.mule.runtime.core.api.registry.SpiServiceRegistry;
 import org.mule.runtime.core.internal.config.ParentMuleContextAwareConfigurationBuilder;
 import org.mule.runtime.core.internal.context.DefaultMuleContext;
 import org.mule.runtime.core.internal.context.MuleContextWithRegistry;
@@ -146,7 +153,10 @@ public class SpringXmlConfigurationBuilder extends AbstractResourceConfiguration
       return;
     }
 
-    muleArtifactContext = createApplicationContext(muleContext);
+    ComponentBuildingDefinitionRegistry componentBuildingDefinitionRegistry =
+        createComponentBuildingDefinitionRegistry(muleContext);
+
+    muleArtifactContext = createApplicationContext(muleContext, componentBuildingDefinitionRegistry);
     createSpringRegistry(muleContext, muleArtifactContext);
   }
 
@@ -157,7 +167,9 @@ public class SpringXmlConfigurationBuilder extends AbstractResourceConfiguration
    */
   protected void addResources(List<ConfigResource> allResources) {}
 
-  private MuleArtifactContext createApplicationContext(MuleContext muleContext) throws Exception {
+  private MuleArtifactContext createApplicationContext(MuleContext muleContext,
+                                                       ComponentBuildingDefinitionRegistry componentBuildingDefinitionRegistry)
+      throws Exception {
     OptionalObjectsController applicationObjectcontroller = new DefaultOptionalObjectsController();
     OptionalObjectsController parentObjectController = null;
 
@@ -170,36 +182,66 @@ public class SpringXmlConfigurationBuilder extends AbstractResourceConfiguration
     }
 
     // TODO MULE-10084 : Refactor to only accept artifactConfiguration and not artifactConfigResources
-    final MuleArtifactContext muleArtifactContext =
-        doCreateApplicationContext(muleContext, artifactDeclaration, applicationObjectcontroller);
+    final MuleArtifactContext muleArtifactContext = doCreateApplicationContext(muleContext,
+                                                                               artifactDeclaration,
+                                                                               componentBuildingDefinitionRegistry,
+                                                                               applicationObjectcontroller);
     serviceConfigurators.forEach(serviceConfigurator -> serviceConfigurator.configure(muleContext.getCustomizationService()));
     return muleArtifactContext;
   }
 
   private MuleArtifactContext doCreateApplicationContext(MuleContext muleContext,
                                                          ArtifactDeclaration artifactDeclaration,
+                                                         ComponentBuildingDefinitionRegistry componentBuildingDefinitionRegistry,
                                                          OptionalObjectsController optionalObjectsController) {
     MuleArtifactContext muleArtifactContext;
 
     if (enableLazyInit) {
-      muleArtifactContext = new LazyMuleArtifactContext(muleContext, resolveArtifactConfigResources(), artifactDeclaration,
+      muleArtifactContext = new LazyMuleArtifactContext(muleContext,
+                                                        resolveArtifactConfigResources(),
+                                                        artifactDeclaration,
                                                         optionalObjectsController,
-                                                        getArtifactProperties(), artifactType,
-                                                        resolveContextArtifactPluginClassLoaders(),
+                                                        getArtifactProperties(),
+                                                        artifactType,
+                                                        componentBuildingDefinitionRegistry,
                                                         resolveComponentModelInitializer(),
-                                                        resolveParentConfigurationProperties(), disableXmlValidations,
-                                                        runtimeComponentBuildingDefinitionsProvider,
+                                                        resolveParentConfigurationProperties(),
+                                                        disableXmlValidations,
                                                         runtimeLockFactory);
     } else {
       muleArtifactContext =
-          new MuleArtifactContext(muleContext, resolveArtifactConfigResources(), artifactDeclaration, optionalObjectsController,
-                                  getArtifactProperties(), artifactType, resolveContextArtifactPluginClassLoaders(),
-                                  resolveParentConfigurationProperties(), disableXmlValidations,
-                                  runtimeComponentBuildingDefinitionsProvider, runtimeLockFactory);
+          new MuleArtifactContext(muleContext,
+                                  resolveArtifactConfigResources(),
+                                  artifactDeclaration,
+                                  optionalObjectsController,
+                                  getArtifactProperties(),
+                                  artifactType,
+                                  componentBuildingDefinitionRegistry,
+                                  resolveParentConfigurationProperties(),
+                                  disableXmlValidations,
+                                  runtimeLockFactory);
       muleArtifactContext.initialize();
     }
 
     return muleArtifactContext;
+  }
+
+  private ComponentBuildingDefinitionRegistry createComponentBuildingDefinitionRegistry(MuleContext muleContext) {
+    ComponentBuildingDefinitionRegistry componentBuildingDefinitionRegistry = new ComponentBuildingDefinitionRegistry();
+    ServiceRegistry serviceRegistry = new SpiServiceRegistry();
+    runtimeComponentBuildingDefinitionsProvider.getComponentBuildingDefinitions()
+        .forEach(componentBuildingDefinitionRegistry::register);
+
+    ExtensionManager extensionManager = muleContext.getExtensionManager();
+    getExtensionModelsComponentBuildingDefinitions(serviceRegistry,
+                                                   (extensionManager == null ? emptySet() : extensionManager.getExtensions()))
+                                                       .forEach(componentBuildingDefinitionRegistry::register);
+
+    for (ClassLoader pluginArtifactClassLoader : resolveContextArtifactPluginClassLoaders()) {
+      getArtifactComponentBuildingDefinitions(serviceRegistry, pluginArtifactClassLoader)
+          .forEach(componentBuildingDefinitionRegistry::register);
+    }
+    return componentBuildingDefinitionRegistry;
   }
 
   private ConfigResource[] resolveArtifactConfigResources() {

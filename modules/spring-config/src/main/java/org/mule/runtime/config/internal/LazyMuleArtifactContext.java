@@ -61,6 +61,7 @@ import org.mule.runtime.app.declaration.api.ArtifactDeclaration;
 import org.mule.runtime.ast.api.ArtifactAst;
 import org.mule.runtime.ast.api.ComponentAst;
 import org.mule.runtime.ast.graph.api.ArtifactAstDependencyGraph;
+import org.mule.runtime.config.api.dsl.model.ComponentBuildingDefinitionRegistry;
 import org.mule.runtime.config.internal.dsl.model.NoSuchComponentModelException;
 import org.mule.runtime.config.internal.dsl.model.SpringComponentModel;
 import org.mule.runtime.config.internal.dsl.processor.ObjectTypeVisitor;
@@ -81,7 +82,6 @@ import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChainBui
 import org.mule.runtime.core.privileged.registry.RegistrationException;
 import org.mule.runtime.dsl.api.ConfigResource;
 import org.mule.runtime.dsl.api.component.ComponentBuildingDefinition;
-import org.mule.runtime.dsl.api.component.ComponentBuildingDefinitionProvider;
 import org.mule.runtime.extension.api.runtime.config.ConfigurationProvider;
 
 import java.io.File;
@@ -148,15 +148,14 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
   public LazyMuleArtifactContext(MuleContext muleContext, ConfigResource[] artifactConfigResources,
                                  ArtifactDeclaration artifactDeclaration, OptionalObjectsController optionalObjectsController,
                                  Map<String, String> artifactProperties, ArtifactType artifactType,
-                                 List<ClassLoader> pluginsClassLoaders,
+                                 ComponentBuildingDefinitionRegistry componentBuildingDefinitionRegistry,
                                  Optional<ComponentModelInitializer> parentComponentModelInitializer,
                                  Optional<ConfigurationProperties> parentConfigurationProperties, boolean disableXmlValidations,
-                                 ComponentBuildingDefinitionProvider runtimeComponentBuildingDefinitionProvider,
                                  LockFactory runtimeLockFactory)
       throws BeansException {
     super(muleContext, artifactConfigResources, artifactDeclaration, optionalObjectsController,
-          extendArtifactProperties(artifactProperties), artifactType, pluginsClassLoaders, parentConfigurationProperties,
-          disableXmlValidations, runtimeComponentBuildingDefinitionProvider, runtimeLockFactory);
+          extendArtifactProperties(artifactProperties), artifactType, componentBuildingDefinitionRegistry,
+          parentConfigurationProperties, disableXmlValidations, runtimeLockFactory);
 
     // Changes the component locator in order to allow accessing any component by location even when they are prototype
     this.componentLocator = new SpringConfigurationComponentLocator();
