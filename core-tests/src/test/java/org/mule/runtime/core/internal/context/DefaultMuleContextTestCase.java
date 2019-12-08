@@ -40,7 +40,6 @@ import org.mule.runtime.core.api.security.SecurityManager;
 import org.mule.runtime.core.api.transformer.DataTypeConversionResolver;
 import org.mule.runtime.core.api.util.StreamCloserService;
 import org.mule.runtime.core.internal.config.ClusterConfiguration;
-import org.mule.runtime.core.internal.config.builders.DefaultsConfigurationBuilder;
 import org.mule.runtime.core.internal.connector.SchedulerController;
 import org.mule.runtime.core.internal.exception.MessagingException;
 import org.mule.runtime.core.internal.lifecycle.MuleContextLifecycleManager;
@@ -49,7 +48,9 @@ import org.mule.runtime.core.internal.registry.MuleRegistryHelper;
 import org.mule.runtime.core.internal.transformer.DynamicDataTypeConversionResolver;
 import org.mule.runtime.core.internal.util.store.MuleObjectStoreManager;
 import org.mule.tck.config.TestServicesConfigurationBuilder;
+import org.mule.tck.core.internal.config.builders.DefaultsConfigurationBuilder;
 import org.mule.tck.junit4.AbstractMuleTestCase;
+import org.mule.tck.junit4.SimpleRegistryConfigurationBuilder;
 
 import org.junit.After;
 import org.junit.Before;
@@ -61,8 +62,8 @@ public class DefaultMuleContextTestCase extends AbstractMuleTestCase {
 
   private static final Logger LOGGER = getLogger(DefaultMuleContextTestCase.class);
 
-  private SystemExceptionHandler mockSystemExceptionHandler = mock(SystemExceptionHandler.class);
-  private MessagingException mockMessagingException = mock(MessagingException.class);
+  private final SystemExceptionHandler mockSystemExceptionHandler = mock(SystemExceptionHandler.class);
+  private final MessagingException mockMessagingException = mock(MessagingException.class);
   @Rule
   public TestServicesConfigurationBuilder testServicesConfigurationBuilder = new TestServicesConfigurationBuilder();
   private MuleContextFactory muleContextFactory;
@@ -93,6 +94,7 @@ public class DefaultMuleContextTestCase extends AbstractMuleTestCase {
     muleContextBuilder.setLifecycleManager(new MuleContextLifecycleManager());
     muleContextBuilder.setNotificationManager(mockNotificationManager);
     DefaultMuleContext defaultMuleContext = (DefaultMuleContext) muleContextBuilder.buildMuleContext();
+    new SimpleRegistryConfigurationBuilder().configure(defaultMuleContext);
 
     try {
       defaultMuleContext.initialise();
@@ -219,7 +221,8 @@ public class DefaultMuleContextTestCase extends AbstractMuleTestCase {
   @Test
   public void securityManagerIsRegisteredAndCached() throws Exception {
     SecurityManager securityManager = mock(SecurityManager.class);
-    context = muleContextFactory.createMuleContext(testServicesConfigurationBuilder,
+    context = muleContextFactory.createMuleContext(new SimpleRegistryConfigurationBuilder(),
+                                                   testServicesConfigurationBuilder,
                                                    new DefaultsConfigurationBuilder(),
                                                    new AbstractConfigurationBuilder() {
 
@@ -237,6 +240,8 @@ public class DefaultMuleContextTestCase extends AbstractMuleTestCase {
   }
 
   protected void createMuleContext() throws MuleException {
-    context = muleContextFactory.createMuleContext(testServicesConfigurationBuilder, new DefaultsConfigurationBuilder());
+    context = muleContextFactory.createMuleContext(new SimpleRegistryConfigurationBuilder(),
+                                                   testServicesConfigurationBuilder,
+                                                   new DefaultsConfigurationBuilder());
   }
 }

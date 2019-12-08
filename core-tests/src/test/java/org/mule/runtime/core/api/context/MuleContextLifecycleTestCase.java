@@ -36,14 +36,15 @@ import org.mule.runtime.core.api.context.notification.MuleContextNotificationLis
 import org.mule.runtime.core.api.security.SecurityManager;
 import org.mule.runtime.core.api.util.UUID;
 import org.mule.runtime.core.api.util.queue.QueueManager;
-import org.mule.runtime.core.internal.config.builders.DefaultsConfigurationBuilder;
 import org.mule.runtime.core.internal.context.DefaultMuleContextBuilder;
 import org.mule.runtime.core.internal.context.MuleContextWithRegistry;
 import org.mule.runtime.core.internal.context.notification.DefaultNotificationListenerRegistry;
 import org.mule.runtime.core.internal.lifecycle.MuleContextLifecycleManager;
 import org.mule.runtime.core.internal.util.JdkVersionUtils;
 import org.mule.tck.config.TestServicesConfigurationBuilder;
+import org.mule.tck.core.internal.config.builders.DefaultsConfigurationBuilder;
 import org.mule.tck.junit4.AbstractMuleTestCase;
+import org.mule.tck.junit4.SimpleRegistryConfigurationBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,6 +76,7 @@ public class MuleContextLifecycleTestCase extends AbstractMuleTestCase {
     callbackListener = new TestMuleContextListener();
     ctxBuilder.setListeners(Arrays.asList(callbackListener));
     ctx = ctxBuilder.buildMuleContext();
+    new SimpleRegistryConfigurationBuilder().configure(ctx);
 
     notificationListenerRegistry = new DefaultNotificationListenerRegistry();
     ((MuleContextWithRegistry) ctx).getRegistry().registerObject(NotificationListenerRegistry.REGISTRY_KEY,
@@ -393,7 +395,7 @@ public class MuleContextLifecycleTestCase extends AbstractMuleTestCase {
 
   private static class SensingLifecycleManager extends MuleContextLifecycleManager {
 
-    private List<String> appliedLifecyclePhases;
+    private final List<String> appliedLifecyclePhases;
 
     public SensingLifecycleManager() {
       super();

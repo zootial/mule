@@ -10,6 +10,7 @@ import static java.util.Optional.empty;
 import static org.mule.runtime.core.api.context.notification.ServerNotificationManager.createDefaultNotificationManager;
 import static org.mule.runtime.core.internal.exception.ErrorTypeLocatorFactory.createDefaultErrorTypeLocator;
 import static org.mule.runtime.core.internal.exception.ErrorTypeRepositoryFactory.createDefaultErrorTypeRepository;
+
 import org.mule.runtime.api.exception.ErrorTypeRepository;
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.i18n.I18nMessage;
@@ -30,7 +31,6 @@ import org.mule.runtime.core.api.lifecycle.LifecycleManager;
 import org.mule.runtime.core.api.util.ClassUtils;
 import org.mule.runtime.core.internal.exception.DefaultSystemExceptionStrategy;
 import org.mule.runtime.core.internal.lifecycle.MuleContextLifecycleManager;
-import org.mule.runtime.core.internal.registry.SimpleRegistry;
 import org.mule.runtime.core.internal.serialization.JavaObjectSerializer;
 
 import java.util.ArrayList;
@@ -88,9 +88,9 @@ public class DefaultMuleContextBuilder implements MuleContextBuilder {
     muleContext.setLifecycleManager(injectMuleContextIfRequired(getLifecycleManager(), muleContext));
     muleContext.setArtifactType(artifactType);
 
-    final SimpleRegistry registry = new SimpleRegistry(muleContext, muleContext.getLifecycleInterceptor());
-    muleContext.setRegistry(registry);
-    muleContext.setInjector(registry);
+    // final SimpleRegistry registry = new SimpleRegistry(muleContext, muleContext.getLifecycleInterceptor());
+    // muleContext.setRegistry(registry);
+    // muleContext.setInjector(registry);
 
     muleContext.setExceptionListener(createExceptionListener(muleContext));
     muleContext.setExecutionClassLoader(getExecutionClassLoader());
@@ -131,11 +131,11 @@ public class DefaultMuleContextBuilder implements MuleContextBuilder {
   }
 
   private SystemExceptionHandler createExceptionListener(DefaultMuleContext muleContext) {
-    SystemExceptionHandler systemExceptionHandler = muleContext.getRegistry().get("_exceptionListenerFactory");
-    if (systemExceptionHandler == null) {
-      systemExceptionHandler = new DefaultSystemExceptionStrategy();
-    }
-    return systemExceptionHandler;
+    // SystemExceptionHandler systemExceptionHandler = muleContext.getRegistry().get("_exceptionListenerFactory");
+    // if (systemExceptionHandler == null) {
+    // systemExceptionHandler = new DefaultSystemExceptionStrategy();
+    // }
+    return new DefaultSystemExceptionStrategy();
   }
 
   protected DefaultMuleContext createDefaultMuleContext() {
@@ -242,10 +242,12 @@ public class DefaultMuleContextBuilder implements MuleContextBuilder {
         + ", notificationManager=" + notificationManager + "}";
   }
 
+  @Override
   public void setDeploymentProperties(Optional<Properties> deploymentProperties) {
     this.deploymentProperties = deploymentProperties;
   }
 
+  @Override
   public void setListeners(List<MuleContextListener> listeners) {
     this.listeners = listeners;
   }

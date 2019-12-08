@@ -22,7 +22,7 @@ import org.mule.runtime.core.api.construct.Flow;
 import org.mule.runtime.core.api.context.DefaultMuleContextFactory;
 import org.mule.runtime.core.api.context.MuleContextFactory;
 import org.mule.runtime.core.api.event.CoreEvent;
-import org.mule.runtime.core.internal.config.builders.DefaultsConfigurationBuilder;
+import org.mule.tck.core.internal.config.builders.DefaultsConfigurationBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;

@@ -18,6 +18,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mule.runtime.core.internal.registry.TransformerResolver.RegistryAction.ADDED;
+
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.config.ConfigurationBuilder;
 import org.mule.runtime.core.api.config.builders.AbstractConfigurationBuilder;
@@ -41,7 +42,7 @@ public class ConvertersNotRegisteredTwiceTestCase extends AbstractMuleContextTes
   @Override
   protected void addBuilders(List<ConfigurationBuilder> builders) {
     super.addBuilders(builders);
-    builders.add(0, new AbstractConfigurationBuilder() {
+    builders.add(1, new AbstractConfigurationBuilder() {
 
       @Override
       protected void doConfigure(MuleContext muleContext) throws Exception {

@@ -38,7 +38,7 @@ public final class DefaultMuleContextFactory implements MuleContextFactory {
 
   protected static final Logger logger = LoggerFactory.getLogger(DefaultMuleContextFactory.class);
 
-  private List<MuleContextListener> listeners = new LinkedList<>();
+  private final List<MuleContextListener> listeners = new LinkedList<>();
 
   /**
    * Creates a MuleContext using a default MuleContextBuilder
@@ -90,7 +90,7 @@ public final class DefaultMuleContextFactory implements MuleContextFactory {
    * either use a default {@link ConfigurationBuilder} to implement this, or do some auto-detection to determine the
    * {@link ConfigurationBuilder} that should be used.
    *
-   * @param resource comma seperated list of configuration resources.
+   * @param resource comma separated list of configuration resources.
    * @throws InitialisationException
    * @throws ConfigurationException
    */

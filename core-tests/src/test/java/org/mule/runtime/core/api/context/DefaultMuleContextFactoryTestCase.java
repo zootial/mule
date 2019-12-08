@@ -28,6 +28,7 @@ import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_QUEUE_MANAG
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_SECURITY_MANAGER;
 import static org.mule.runtime.core.api.config.bootstrap.ArtifactType.APP;
 import static org.mule.tck.util.MuleContextUtils.mockMuleContext;
+
 import org.mule.runtime.api.artifact.Registry;
 import org.mule.runtime.api.lifecycle.InitialisationException;
 import org.mule.runtime.core.api.MuleContext;
@@ -36,12 +37,13 @@ import org.mule.runtime.core.api.config.ConfigurationException;
 import org.mule.runtime.core.api.config.DefaultMuleConfiguration;
 import org.mule.runtime.core.api.config.builders.SimpleConfigurationBuilder;
 import org.mule.runtime.core.api.context.notification.MuleContextListener;
-import org.mule.runtime.core.internal.config.builders.DefaultsConfigurationBuilder;
 import org.mule.runtime.core.internal.context.DefaultMuleContext;
 import org.mule.runtime.core.internal.context.DefaultMuleContextBuilder;
 import org.mule.runtime.core.internal.context.MuleContextWithRegistry;
 import org.mule.tck.config.TestServicesConfigurationBuilder;
+import org.mule.tck.core.internal.config.builders.DefaultsConfigurationBuilder;
 import org.mule.tck.junit4.AbstractMuleTestCase;
+import org.mule.tck.junit4.SimpleRegistryConfigurationBuilder;
 import org.mule.tck.testmodels.fruit.Banana;
 
 import java.util.ArrayList;
@@ -61,7 +63,7 @@ public class DefaultMuleContextFactoryTestCase extends AbstractMuleTestCase {
   @Rule
   public TestServicesConfigurationBuilder testServicesConfigurationBuilder = new TestServicesConfigurationBuilder();
 
-  private DefaultMuleContextFactory muleContextFactory = new DefaultMuleContextFactory();
+  private final DefaultMuleContextFactory muleContextFactory = new DefaultMuleContextFactory();
   private static String TEST_STRING_KEY = "test";
   private static String TEST_STRING_VALUE = "test_value";
   private static String TEST_STRING_KEY2 = "test2";
@@ -92,7 +94,8 @@ public class DefaultMuleContextFactoryTestCase extends AbstractMuleTestCase {
 
   @Test
   public void testCreateMuleContext() throws InitialisationException, ConfigurationException {
-    context = muleContextFactory.createMuleContext(testServicesConfigurationBuilder, new DefaultsConfigurationBuilder());
+    context = muleContextFactory.createMuleContext(new SimpleRegistryConfigurationBuilder(), testServicesConfigurationBuilder,
+                                                   new DefaultsConfigurationBuilder());
 
     assertMuleContextConfiguration(context);
     assertDefaults(context);
@@ -100,7 +103,8 @@ public class DefaultMuleContextFactoryTestCase extends AbstractMuleTestCase {
 
   @Test
   public void testCreateMuleContextConfigurationBuilder() throws InitialisationException, ConfigurationException {
-    context = muleContextFactory.createMuleContext(testServicesConfigurationBuilder, testConfigBuilder);
+    context = muleContextFactory.createMuleContext(new SimpleRegistryConfigurationBuilder(), testServicesConfigurationBuilder,
+                                                   testConfigBuilder);
 
     assertMuleContextConfiguration(context);
     assertConfigurationBuilder1Objects(context);
@@ -110,6 +114,7 @@ public class DefaultMuleContextFactoryTestCase extends AbstractMuleTestCase {
   @Test
   public void testCreateMuleContextListMuleContextBuilder() throws InitialisationException, ConfigurationException {
     List<ConfigurationBuilder> configBuilders = new ArrayList<>();
+    configBuilders.add(new SimpleRegistryConfigurationBuilder());
     configBuilders.add(testServicesConfigurationBuilder);
     configBuilders.add(testConfigBuilder);
     configBuilders.add(testConfigBuilder2);
@@ -127,7 +132,9 @@ public class DefaultMuleContextFactoryTestCase extends AbstractMuleTestCase {
   public void testCreateMuleContextMuleContextBuilder() throws InitialisationException, ConfigurationException {
     TestMuleContextBuilder muleContextBuilder = new TestMuleContextBuilder();
     context =
-        muleContextFactory.createMuleContext(asList(testServicesConfigurationBuilder, new SimpleConfigurationBuilder(null)),
+        muleContextFactory.createMuleContext(
+                                             asList(new SimpleRegistryConfigurationBuilder(), testServicesConfigurationBuilder,
+                                                    new SimpleConfigurationBuilder(null)),
                                              muleContextBuilder);
 
     assertCustomMuleContext(context);
@@ -139,7 +146,8 @@ public class DefaultMuleContextFactoryTestCase extends AbstractMuleTestCase {
       throws InitialisationException, ConfigurationException {
     TestMuleContextBuilder muleContextBuilder = new TestMuleContextBuilder();
     context = muleContextFactory
-        .createMuleContext(asList(testServicesConfigurationBuilder, testConfigBuilder2), muleContextBuilder);
+        .createMuleContext(asList(new SimpleRegistryConfigurationBuilder(), testServicesConfigurationBuilder, testConfigBuilder2),
+                           muleContextBuilder);
 
     assertCustomMuleContext(context);
     assertConfigurationBuilder2Objects(context);
@@ -160,31 +168,14 @@ public class DefaultMuleContextFactoryTestCase extends AbstractMuleTestCase {
   }
 
   @Test
-  public void testCreateMuleContextStringProperties() throws InitialisationException, ConfigurationException {
-    Properties properties = new Properties();
-    properties.put("testKey1", "testValue1");
-    properties.put("testKey2", "testValue2");
-
-    context = null;
-    try {
-      context = muleContextFactory.createMuleContext("log4j2-test.xml", (Map) properties);
-    } catch (ConfigurationException e) {
-      assertThat(e.getMessage(),
-                 equalTo("No suitable configuration builder for resource \"[ConfigResource{resourceName='log4j2-test.xml'}]\" found.  "
-                     + "Check you have configuration module on your classpath and are using correct file extension."));
-    }
-
-    assertNull(context);
-  }
-
-  @Test
   public void testCreateMuleContextConfigurationBuilderProperties() throws InitialisationException, ConfigurationException {
     Properties properties = new Properties();
     properties.put("testKey3", "testValue3");
     properties.put("testKey4", "testValue4");
 
-    context = muleContextFactory.createMuleContext(asList(testServicesConfigurationBuilder, testConfigBuilder),
-                                                   (Map) properties);
+    context = muleContextFactory
+        .createMuleContext(asList(new SimpleRegistryConfigurationBuilder(), testServicesConfigurationBuilder, testConfigBuilder),
+                           (Map) properties);
 
     assertMuleContextConfiguration(context);
     assertConfigurationBuilder1Objects(context);

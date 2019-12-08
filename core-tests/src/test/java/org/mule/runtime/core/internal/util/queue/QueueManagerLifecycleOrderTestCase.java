@@ -38,6 +38,7 @@ import org.mule.runtime.core.internal.interception.InterceptorManager;
 import org.mule.runtime.core.internal.security.DefaultMuleSecurityManager;
 import org.mule.tck.config.TestServicesConfigurationBuilder;
 import org.mule.tck.junit4.AbstractMuleTestCase;
+import org.mule.tck.junit4.SimpleRegistryConfigurationBuilder;
 import org.mule.tck.size.SmallTest;
 
 import java.util.ArrayList;
@@ -70,7 +71,8 @@ public class QueueManagerLifecycleOrderTestCase extends AbstractMuleTestCase {
     objects.put(OBJECT_SECURITY_MANAGER, new DefaultMuleSecurityManager());
     objects.put(INTERCEPTOR_MANAGER_REGISTRY_KEY, mock(InterceptorManager.class));
     objects.put(OBJECT_ERROR_TYPE_REPO_REGISTRY_KEY, createDefaultErrorTypeRepository());
-    muleContext = new DefaultMuleContextFactory().createMuleContext(testServicesConfigurationBuilder,
+    muleContext = new DefaultMuleContextFactory().createMuleContext(new SimpleRegistryConfigurationBuilder(),
+                                                                    testServicesConfigurationBuilder,
                                                                     new SimpleConfigurationBuilder(objects));
     testServicesConfigurationBuilder.configure(muleContext);
   }

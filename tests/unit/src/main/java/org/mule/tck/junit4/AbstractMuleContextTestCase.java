@@ -30,6 +30,7 @@ import static org.mule.tck.junit4.TestsLogConfigurationHelper.clearLoggingConfig
 import static org.mule.tck.junit4.TestsLogConfigurationHelper.configureLoggingForTest;
 import static org.mule.tck.util.MuleContextUtils.eventBuilder;
 import static org.slf4j.LoggerFactory.getLogger;
+
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.message.Message;
@@ -51,7 +52,6 @@ import org.mule.runtime.core.api.context.notification.MuleContextNotificationLis
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.Processor;
 import org.mule.runtime.core.api.util.StringUtils;
-import org.mule.runtime.core.internal.config.builders.DefaultsConfigurationBuilder;
 import org.mule.runtime.core.internal.el.ExpressionExecutor;
 import org.mule.runtime.core.internal.serialization.JavaObjectSerializer;
 import org.mule.runtime.http.api.HttpService;
@@ -59,8 +59,7 @@ import org.mule.tck.SensingNullMessageProcessor;
 import org.mule.tck.SimpleUnitTestSupportSchedulerService;
 import org.mule.tck.TriggerableMessageSource;
 import org.mule.tck.config.TestServicesConfigurationBuilder;
-
-import com.google.common.collect.ImmutableMap;
+import org.mule.tck.core.internal.config.builders.DefaultsConfigurationBuilder;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -79,6 +78,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Extends {@link AbstractMuleTestCase} providing access to a {@link MuleContext} instance and tools for manage it.
@@ -248,6 +249,7 @@ public abstract class AbstractMuleContextTestCase extends AbstractMuleTestCase {
 
         MuleContextFactory muleContextFactory = new DefaultMuleContextFactory();
         List<ConfigurationBuilder> builders = new ArrayList<>();
+        builders.add(new SimpleRegistryConfigurationBuilder());
         builders.add(new SimpleConfigurationBuilder(getStartUpRegistryObjects()));
         addBuilders(builders);
         builders.add(new MockExtensionManagerConfigurationBuilder());

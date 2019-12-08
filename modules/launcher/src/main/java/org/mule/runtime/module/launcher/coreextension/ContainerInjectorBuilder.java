@@ -15,6 +15,7 @@ import org.mule.runtime.api.service.ServiceRepository;
 import org.mule.runtime.container.api.MuleCoreExtension;
 import org.mule.runtime.core.api.Injector;
 import org.mule.runtime.core.api.event.EventContextService;
+import org.mule.runtime.core.internal.registry.LifecycleStateInjectorProcessor;
 import org.mule.runtime.core.internal.registry.SimpleRegistry;
 import org.mule.runtime.core.privileged.registry.RegistrationException;
 import org.mule.runtime.module.artifact.api.classloader.ArtifactClassLoaderManager;
@@ -113,12 +114,16 @@ public class ContainerInjectorBuilder<T extends ContainerInjectorBuilder> {
   /**
    * Creates the injector for the container
    *
-   * @return an injector witht the provided configuration
+   * @return an injector with the provided configuration
    */
   public Injector build() {
     SimpleRegistry injector = new SimpleRegistry(null, null);
 
     try {
+      injector.registerObject("_muleLifecycleStateInjectorProcessor",
+                              new LifecycleStateInjectorProcessor(injector.getLifecycleManager().getState()));
+      injector.registerObject("_muleLifecycleManager", injector.getLifecycleManager());
+
       injector.registerObjects(objectsToRegister);
     } catch (RegistrationException e) {
       throw new RuntimeException(e);
