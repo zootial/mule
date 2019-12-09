@@ -7,7 +7,6 @@
 
 package org.mule.functional.junit4;
 
-import static java.util.Collections.singletonMap;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
@@ -15,6 +14,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_CLASSLOADER_REPOSITORY;
 import static org.mule.test.runner.utils.AnnotationUtils.getAnnotationAttributeFrom;
+
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.serialization.ObjectSerializer;
 import org.mule.runtime.api.service.Service;
@@ -46,6 +46,8 @@ import java.util.Optional;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Base class for running {@link FunctionalTestCase} with class loader isolation using {@link ArtifactClassLoaderRunner}, a JUnit
@@ -236,14 +238,19 @@ public abstract class ArtifactFunctionalTestCase extends FunctionalTestCase {
           + " for defining a delegate runner to be used.");
     }
 
+
+    // This goes after the Spring registry is configured
+    builders.add(new SimpleConfigurationBuilder(ImmutableMap.<String, Object>builder()
+        .putAll(getStartUpRegistryObjects())
+        .put(OBJECT_CLASSLOADER_REPOSITORY, classLoaderRepository)
+        .build()));
+
+    builders.add(new TestBootstrapServiceDiscovererConfigurationBuilder(containerClassLoader, getExecutionClassLoader(),
+                                                                        pluginClassLoaders));
+
     if (extensionsManagerConfigurationBuilder != null) {
-      builders.add(0, extensionsManagerConfigurationBuilder);
+      builders.add(extensionsManagerConfigurationBuilder);
     }
-
-    builders.add(0, new TestBootstrapServiceDiscovererConfigurationBuilder(containerClassLoader, getExecutionClassLoader(),
-                                                                           pluginClassLoaders));
-
-    builders.add(0, new SimpleConfigurationBuilder(singletonMap(OBJECT_CLASSLOADER_REPOSITORY, classLoaderRepository)));
   }
 
   /**
@@ -252,7 +259,7 @@ public abstract class ArtifactFunctionalTestCase extends FunctionalTestCase {
    */
   protected static class TestClassLoaderRepository implements ClassLoaderRepository {
 
-    private Map<String, ClassLoader> classLoaders = new HashMap<>();
+    private final Map<String, ClassLoader> classLoaders = new HashMap<>();
 
     public TestClassLoaderRepository() {
       registerClassLoader(Thread.currentThread().getContextClassLoader());
