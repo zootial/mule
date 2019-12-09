@@ -10,7 +10,6 @@ import static java.util.Collections.emptyMap;
 import static org.mule.runtime.config.api.SpringXmlConfigurationBuilderFactory.createConfigurationBuilder;
 import static org.mule.runtime.core.api.config.bootstrap.ArtifactType.APP;
 import static org.mule.runtime.core.internal.retry.ReconnectionConfig.DISABLE_ASYNC_RETRY_POLICY_ON_SOURCES;
-
 import org.mule.functional.api.flow.FlowRunner;
 import org.mule.runtime.api.artifact.Registry;
 import org.mule.runtime.container.internal.ContainerClassLoaderFactory;
@@ -53,7 +52,7 @@ public abstract class FunctionalTestCase extends AbstractMuleContextTestCase {
   protected Registry registry;
 
   private volatile boolean tearingDown = false;
-  private final Set<FlowRunner> runners = new HashSet<>();
+  private Set<FlowRunner> runners = new HashSet<>();
 
   public FunctionalTestCase() {
     super();
@@ -76,11 +75,6 @@ public abstract class FunctionalTestCase extends AbstractMuleContextTestCase {
 
   protected Map<String, String> artifactProperties() {
     return emptyMap();
-  }
-
-  @Override
-  protected boolean usesActualRegistry() {
-    return true;
   }
 
   @Override

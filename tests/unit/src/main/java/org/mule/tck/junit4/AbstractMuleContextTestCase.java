@@ -249,15 +249,11 @@ public abstract class AbstractMuleContextTestCase extends AbstractMuleTestCase {
 
         MuleContextFactory muleContextFactory = new DefaultMuleContextFactory();
         List<ConfigurationBuilder> builders = new ArrayList<>();
-        if (!usesActualRegistry()) {
-          builders.add(new SimpleRegistryConfigurationBuilder());
-          builders.add(new SimpleConfigurationBuilder(getStartUpRegistryObjects()));
-        }
-        builders.add(getBuilder());
+        builders.add(new SimpleRegistryConfigurationBuilder());
+        builders.add(new SimpleConfigurationBuilder(getStartUpRegistryObjects()));
         addBuilders(builders);
-        // if (!usesActualRegistry()) {
         builders.add(new MockExtensionManagerConfigurationBuilder());
-        // }
+        builders.add(getBuilder());
         MuleContextBuilder contextBuilder = MuleContextBuilder.builder(APP);
         DefaultMuleConfiguration muleConfiguration = new DefaultMuleConfiguration();
         String workingDirectory = this.workingDirectory.getRoot().getAbsolutePath();
@@ -281,13 +277,6 @@ public abstract class AbstractMuleContextTestCase extends AbstractMuleTestCase {
       }
     }
     return context;
-  }
-
-  /**
-   * @return true is the test will create an actual Spring registry, false if a simpler one for unit tests is to be used.
-   */
-  protected boolean usesActualRegistry() {
-    return false;
   }
 
   /**

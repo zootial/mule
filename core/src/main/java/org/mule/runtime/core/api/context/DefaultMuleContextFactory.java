@@ -165,14 +165,14 @@ public final class DefaultMuleContextFactory implements MuleContextFactory {
 
       @Override
       public void configure(MuleContext muleContext) throws ConfigurationException {
-        // Configure with configurationBuilder
-        for (ConfigurationBuilder configurationBuilder : configurationBuilders) {
-          configurationBuilder.configure(muleContext);
-        }
-
         // Configure with startup properties
         if (properties != null && !properties.isEmpty()) {
           new SimpleConfigurationBuilder(properties).configure(muleContext);
+        }
+
+        // Configure with configurationBuilder
+        for (ConfigurationBuilder configurationBuilder : configurationBuilders) {
+          configurationBuilder.configure(muleContext);
         }
       }
     });

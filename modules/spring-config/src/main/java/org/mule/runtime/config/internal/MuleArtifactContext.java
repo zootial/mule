@@ -229,9 +229,7 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
     this.xmlConfigurationDocumentLoader = disableXmlValidations ? noValidationDocumentLoader() : schemaValidatingDocumentLoader();
     this.serviceDiscoverer = new DefaultRegistry(muleContext);
     this.resourceLocator = new DefaultResourceLocator();
-    if (((MuleRegistryHelper) getMuleRegistry()) != null) {
-      originalRegistry = ((MuleRegistryHelper) getMuleRegistry()).getDelegate();
-    }
+    originalRegistry = ((MuleRegistryHelper) getMuleRegistry()).getDelegate();
 
     runtimeComponentBuildingDefinitionProvider.getComponentBuildingDefinitions()
         .forEach(componentBuildingDefinitionRegistry::register);
