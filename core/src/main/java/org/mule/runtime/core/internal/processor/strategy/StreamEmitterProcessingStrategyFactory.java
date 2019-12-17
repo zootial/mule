@@ -176,7 +176,6 @@ public class StreamEmitterProcessingStrategyFactory extends AbstractStreamProces
         EmitterProcessor<CoreEvent> processor = EmitterProcessor.create(getBufferQueueSize());
         AtomicReference<Throwable> failedSubscriptionCause = new AtomicReference<>();
         processor.transform(function)
-            .doAfterTerminate(this::stopSchedulersIfNeeded)
             .subscribe(null, getThrowableConsumer(flowConstruct, completionLatch, failedSubscriptionCause),
                        () -> completionLatch.release());
 
@@ -186,8 +185,11 @@ public class StreamEmitterProcessingStrategyFactory extends AbstractStreamProces
 
         ReactorSink<CoreEvent> sink =
             new DefaultReactorSink<>(processor.sink(BUFFER),
-                                     () -> awaitSubscribersCompletion(flowConstruct, shutdownTimeout, completionLatch,
-                                                                      currentTimeMillis()),
+                                     () -> {
+                                       awaitSubscribersCompletion(flowConstruct, shutdownTimeout, completionLatch,
+                                                                  currentTimeMillis());
+                                       stopSchedulersIfNeeded();
+                                     },
                                      onEventConsumer, getBufferQueueSize());
         sinks.add(sink);
       }

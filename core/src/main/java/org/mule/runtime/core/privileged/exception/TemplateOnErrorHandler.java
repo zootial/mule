@@ -310,8 +310,8 @@ public abstract class TemplateOnErrorHandler extends AbstractExceptionListener
   }
 
   @Override
-  public void dispose() {
-    super.dispose();
+  public void stop() throws MuleException {
+    super.stop();
     disposeIfNeeded(routingSink, logger);
   }
 
