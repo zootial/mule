@@ -264,13 +264,13 @@ public abstract class ComponentModel {
 
       @Override
       public void onConnectionProvider(ConnectionProviderModel model) {
-        setConnectionProviderModel(extensionModel,model);
+        setConnectionProviderModel(extensionModel, model);
         onParameterizedModel(model);
       }
 
       @Override
       public void onOperation(OperationModel model) {
-        setComponentModel(extensionModel,model);
+        setComponentModel(extensionModel, model);
         onParameterizedModel(model);
       }
 
@@ -288,7 +288,7 @@ public abstract class ComponentModel {
 
       @Override
       public void onNestableElement(NestableElementModel model) {
-        setNestableElementModel(model);
+        setNestableElementModel(extensionModel, model);
         if (model instanceof ParameterizedModel) {
           onParameterizedModel((ParameterizedModel) model);
         }
@@ -388,13 +388,15 @@ public abstract class ComponentModel {
     this.componentModel = model;
   }
 
-  public void setConfigurationModel(ExtensionModel extensionModel, ConfigurationModel model) {
+  public void setNestableElementModel(ExtensionModel extensionModel, NestableElementModel model) {
     this.extensionModel = extensionModel;
     this.nestableElementModel = nestableElementModel;
   }
 
-  public void setConfigurationModel(ConfigurationModel model) {
-    this.configurationModel = model;
+  public void setConfigurationModel(ExtensionModel extensionModel, ConfigurationModel model) {
+    this.configurationModel = configurationModel;
+    this.extensionModel = extensionModel;
+
   }
 
   public void setConnectionProviderModel(ExtensionModel extensionModel, ConnectionProviderModel connectionProviderModel) {

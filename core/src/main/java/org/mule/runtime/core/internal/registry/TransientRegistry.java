@@ -76,9 +76,9 @@ public abstract class TransientRegistry extends AbstractRegistry {
 
   @Override
   protected void doInitialise() throws InitialisationException {
-    applyProcessors(lookupObjects(Transformer.class), null);
-    applyProcessors(lookupObjects(LegacyImmutableEndpoint.class), null);
-    applyProcessors(lookupObjects(Object.class), null);
+    applyProcessors(lookupObjects(Transformer.class));
+    applyProcessors(lookupObjects(LegacyImmutableEndpoint.class));
+    applyProcessors(lookupObjects(Object.class));
   }
 
   @Override
