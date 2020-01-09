@@ -8,6 +8,7 @@ package org.mule.runtime.core.internal.construct;
 
 import static java.lang.String.format;
 import static java.lang.System.currentTimeMillis;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 import static org.mule.runtime.api.functional.Either.left;
@@ -76,6 +77,8 @@ import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChain;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChainBuilder;
 import org.mule.runtime.core.privileged.registry.RegistrationException;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -367,8 +370,20 @@ public abstract class AbstractPipeline extends AbstractFlowConstruct implements 
 
   protected ReactiveProcessor processFlowFunction() {
     return stream -> from(stream)
+        .subscriberContext(context -> {
+          Deque<ProcessingStrategy> currentProcessingStrategy =
+              new ArrayDeque<>(context.getOrDefault("mule.current.ps", emptyList()));
+          currentProcessingStrategy.pop();
+          return context.put("mule.current.ps", currentProcessingStrategy);
+        })
         .doOnNext(beforeProcessors())
         .transform(processingStrategy.onPipeline(pipeline))
+        .subscriberContext(context -> {
+          Deque<ProcessingStrategy> currentProcessingStrategy =
+              new ArrayDeque<>(context.getOrDefault("mule.current.ps", emptyList()));
+          currentProcessingStrategy.push(processingStrategy);
+          return context.put("mule.current.ps", currentProcessingStrategy);
+        })
         .doOnNext(afterProcessors())
         .onErrorContinue(MessagingException.class,
                          (me, e) -> ((BaseEventContext) (((MessagingException) me).getEvent().getContext())).error(me));

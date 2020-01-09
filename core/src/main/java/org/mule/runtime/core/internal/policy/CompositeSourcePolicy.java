@@ -6,6 +6,7 @@
  */
 package org.mule.runtime.core.internal.policy;
 
+import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.mule.runtime.api.functional.Either.left;
 import static org.mule.runtime.api.functional.Either.right;
@@ -24,9 +25,12 @@ import org.mule.runtime.core.api.policy.Policy;
 import org.mule.runtime.core.api.policy.SourcePolicyParametersTransformer;
 import org.mule.runtime.core.api.processor.Processor;
 import org.mule.runtime.core.api.processor.ReactiveProcessor;
+import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
 import org.mule.runtime.core.internal.exception.MessagingException;
 import org.mule.runtime.core.internal.rx.FluxSinkRecorder;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -96,7 +100,22 @@ public class CompositeSourcePolicy
 
   @Override
   protected ReactiveProcessor getPolicyProcessor() {
-    return getLastPolicy().getPolicyChain().getProcessingStrategy().onPipeline(super.getPolicyProcessor());
+    final ProcessingStrategy processingStrategy = getLastPolicy().getPolicyChain().getProcessingStrategy();
+
+    return stream -> from(stream)
+        .subscriberContext(context -> {
+          Deque<ProcessingStrategy> currentProcessingStrategy =
+              new ArrayDeque<>(context.getOrDefault("mule.current.ps", emptyList()));
+          currentProcessingStrategy.pop();
+          return context.put("mule.current.ps", currentProcessingStrategy);
+        })
+        .transform(getLastPolicy().getPolicyChain().getProcessingStrategy().onPipeline(super.getPolicyProcessor()))
+        .subscriberContext(context -> {
+          Deque<ProcessingStrategy> currentProcessingStrategy =
+              new ArrayDeque<>(context.getOrDefault("mule.current.ps", emptyList()));
+          currentProcessingStrategy.push(processingStrategy);
+          return context.put("mule.current.ps", currentProcessingStrategy);
+        });
   }
 
   private final class SourceWithPoliciesFluxObjectFactory implements Supplier<FluxSink<CoreEvent>> {

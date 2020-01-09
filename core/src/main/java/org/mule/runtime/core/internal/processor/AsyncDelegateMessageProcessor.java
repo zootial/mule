@@ -58,6 +58,8 @@ import org.mule.runtime.core.privileged.processor.Scope;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChain;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChainBuilder;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -245,8 +247,20 @@ public class AsyncDelegateMessageProcessor extends AbstractMessageProcessorOwner
 
   private ReactiveProcessor processAsyncChainFunction() {
     return innerPublisher -> from(innerPublisher)
+        .subscriberContext(context -> {
+          Deque<ProcessingStrategy> currentProcessingStrategy =
+              new ArrayDeque<>(context.getOrDefault("mule.current.ps", emptyList()));
+          currentProcessingStrategy.pop();
+          return context.put("mule.current.ps", currentProcessingStrategy);
+        })
         .doOnNext(fireAsyncScheduledNotification())
         .transform(processingStrategy.onPipeline(scheduleAsync(delegate)))
+        .subscriberContext(context -> {
+          Deque<ProcessingStrategy> currentProcessingStrategy =
+              new ArrayDeque<>(context.getOrDefault("mule.current.ps", emptyList()));
+          currentProcessingStrategy.push(processingStrategy);
+          return context.put("mule.current.ps", currentProcessingStrategy);
+        })
         .doOnNext(event -> {
           fireAsyncCompleteNotification(event, null);
           ((BaseEventContext) event.getContext()).success(event);
