@@ -27,7 +27,6 @@ import static org.mule.runtime.core.privileged.processor.MessageProcessors.getPr
 import static org.mule.runtime.core.privileged.processor.MessageProcessors.processToApply;
 import static org.slf4j.LoggerFactory.getLogger;
 import static reactor.core.publisher.Flux.from;
-import static reactor.core.publisher.Mono.just;
 import static reactor.core.publisher.Mono.subscriberContext;
 
 import org.mule.runtime.api.exception.DefaultMuleException;
@@ -44,15 +43,18 @@ import org.mule.runtime.core.api.transaction.Transaction;
 import org.mule.runtime.core.api.transaction.TransactionConfig;
 import org.mule.runtime.core.api.transaction.TransactionCoordination;
 import org.mule.runtime.core.internal.exception.ErrorHandler;
+import org.mule.runtime.core.internal.rx.FluxSinkRecorder;
 import org.mule.runtime.core.privileged.processor.Scope;
 import org.mule.runtime.core.privileged.processor.chain.MessageProcessorChain;
 import org.mule.runtime.core.privileged.transaction.TransactionAdapter;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 
+import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
 
 /**
@@ -76,7 +78,7 @@ public class TryScope extends AbstractMessageProcessorOwner implements Scope {
 
   @Override
   public Publisher<CoreEvent> apply(Publisher<CoreEvent> publisher) {
-    if (isTransactionActive() || transactionConfig.getAction() != ACTION_INDIFFERENT) {
+    if (transactionConfig.getAction() != ACTION_INDIFFERENT) {
       ExecutionTemplate<CoreEvent> executionTemplate = createScopeTransactionalExecutionTemplate(muleContext, transactionConfig);
       final I18nMessage txErrorMessage = errorInvokingMessageProcessorWithinTransaction(nestedChain, transactionConfig);
 
@@ -114,13 +116,37 @@ public class TryScope extends AbstractMessageProcessorOwner implements Scope {
     }
   }
 
+  private final ThreadLocal<CompletableFuture<CoreEvent>> txFuture = new ThreadLocal<>();
+
   private CoreEvent processBlocking(Context ctx, CoreEvent event) throws MuleException {
     try {
-      return just(event)
+      // return just(event)
+      // .transform(nestedChain)
+      // .onErrorStop()
+      // .subscriberContext(ctx)
+      // .block();
+
+
+      txFuture.set(new CompletableFuture<>());
+      final FluxSinkRecorder<CoreEvent> emitter = new FluxSinkRecorder<>();
+      Flux.create(emitter)
+          // return just(event)
           .transform(nestedChain)
-          .onErrorStop()
+
+          .doOnNext(result -> {
+            txFuture.get().complete(result);
+          })
+
+          // .onErrorStop()
           .subscriberContext(ctx)
-          .block();
+          // .block()
+          .subscribe();
+
+
+      emitter.next(event);
+
+      return txFuture.get().get();
+
     } catch (Throwable e) {
       if (e.getCause() instanceof InterruptedException) {
         currentThread().interrupt();

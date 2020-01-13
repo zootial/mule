@@ -60,11 +60,12 @@ public class BlockingProcessingStrategyFactory implements ProcessingStrategyFact
 
     @Override
     public ReactiveProcessor onProcessor(ReactiveProcessor processor) {
-      return publisher -> from(publisher)
-          .flatMap(e -> subscriberContext()
-              .flatMap(ctx -> just(e).handle((event, sink) -> {
+      return publisher -> subscriberContext()
+          .flatMapMany(ctx -> from(publisher)
+              .handle((event, sink) -> {
                 try {
-                  CoreEvent result = just(event).transform(processor)
+                  CoreEvent result = just(event)
+                      .transform(processor)
                       .subscriberContext(ctx)
                       .block();
                   if (result != null) {
@@ -73,7 +74,7 @@ public class BlockingProcessingStrategyFactory implements ProcessingStrategyFact
                 } catch (Throwable throwable) {
                   sink.error(wrapFatal(unwrap(throwable)));
                 }
-              })));
+              }));
     }
 
   }
