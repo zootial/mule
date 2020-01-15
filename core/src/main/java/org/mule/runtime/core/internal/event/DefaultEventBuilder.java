@@ -77,6 +77,7 @@ public class DefaultEventBuilder implements InternalEvent.Builder {
   private EventInternalContext sdkInternalContext;
   private EventInternalContext sourcePolicyContext;
   private EventInternalContext operationPolicyContext;
+  private EventInternalContext blockingExecutionContext;
   private InternalEvent originalEvent;
   private boolean modified;
   private boolean internalParametersInitialized = false;
@@ -106,6 +107,7 @@ public class DefaultEventBuilder implements InternalEvent.Builder {
     sdkInternalContext = copyOf(event.getSdkInternalContext());
     sourcePolicyContext = copyOf(event.getSourcePolicyContext());
     operationPolicyContext = copyOf(event.getOperationPolicyContext());
+    blockingExecutionContext = copyOf(event.getBlockingExecutionContext());
   }
 
   public DefaultEventBuilder(BaseEventContext messageContext, InternalEvent event) {
@@ -312,6 +314,7 @@ public class DefaultEventBuilder implements InternalEvent.Builder {
                                              sdkInternalContext,
                                              sourcePolicyContext,
                                              operationPolicyContext,
+                                             blockingExecutionContext,
                                              error,
                                              legacyCorrelationId,
                                              notificationsEnabled);
@@ -379,6 +382,7 @@ public class DefaultEventBuilder implements InternalEvent.Builder {
     private transient EventInternalContext sdkInternalContext;
     private transient EventInternalContext sourcePolicyContext;
     private transient EventInternalContext operationPolicyContext;
+    private transient EventInternalContext blockingExecutionContext;
     private transient LazyValue<BindingContext> bindingContextBuilder =
         new LazyValue<>(() -> addEventBindings(this, NULL_BINDING_CONTEXT));
 
@@ -395,6 +399,7 @@ public class DefaultEventBuilder implements InternalEvent.Builder {
       this.sdkInternalContext = null;
       this.sourcePolicyContext = null;
       this.operationPolicyContext = null;
+      this.blockingExecutionContext = null;
       this.internalParameters = new SmallMap<>();
     }
 
@@ -409,6 +414,7 @@ public class DefaultEventBuilder implements InternalEvent.Builder {
                                         EventInternalContext sdkInternalContext,
                                         EventInternalContext sourcePolicyContext,
                                         EventInternalContext operationPolicyContext,
+                                        EventInternalContext blockingExecutionContext,
                                         Error error,
                                         String legacyCorrelationId,
                                         boolean notificationsEnabled) {
@@ -423,6 +429,7 @@ public class DefaultEventBuilder implements InternalEvent.Builder {
       this.sdkInternalContext = sdkInternalContext;
       this.sourcePolicyContext = sourcePolicyContext;
       this.operationPolicyContext = operationPolicyContext;
+      this.blockingExecutionContext = blockingExecutionContext;
       this.error = error;
       this.legacyCorrelationId = legacyCorrelationId;
 
@@ -627,6 +634,16 @@ public class DefaultEventBuilder implements InternalEvent.Builder {
     @Override
     public void setOperationPolicyContext(EventInternalContext operationPolicyContext) {
       this.operationPolicyContext = operationPolicyContext;
+    }
+
+    @Override
+    public EventInternalContext getBlockingExecutionContext() {
+      return blockingExecutionContext;
+    }
+
+    @Override
+    public void setBlockingExecutionContext(EventInternalContext blockingExecutionContext) {
+      this.blockingExecutionContext = blockingExecutionContext;
     }
 
     @Override
