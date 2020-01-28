@@ -45,6 +45,11 @@ public class DeployableArtifactWrapper<T extends DeployableArtifact<D>, D extend
   }
 
   @Override
+  public void dispose(boolean releaseResources) {
+    executeWithinArtifactClassLoader(() -> delegate.dispose(releaseResources));
+  }
+
+  @Override
   public ArtifactClassLoader getArtifactClassLoader() {
     return delegate.getArtifactClassLoader();
   }

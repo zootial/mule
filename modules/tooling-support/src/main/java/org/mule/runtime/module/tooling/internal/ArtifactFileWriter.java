@@ -70,6 +70,21 @@ public class ArtifactFileWriter {
     }
   }
 
+  //This now is done by deleting the directory and re writing it. Maybe be could just replace the config files.
+  public void updateContents(String targetArtifactName, File appLocation) {
+    File artifactFolder = new File(folder, targetArtifactName);
+    if (!artifactFolder.exists()) {
+      throw new UncheckedIOException("Artifact to be updated does not exist: " + artifactFolder.getPath(),
+                                     new IOException("Cannot create folder: " + artifactFolder));
+    }
+    try {
+      walkFileTree(appLocation.toPath(),
+                   new CopyDirVisitor(appLocation.toPath(), artifactFolder.toPath()));
+    } catch (IOException e) {
+      throw new UncheckedIOException("Error while deleting artifact directory", e);
+    }
+  }
+
   /**
    * Writes application content from artifactContentLocation to a new artifact folder under {@link #folder} with the artifactName.
    *
