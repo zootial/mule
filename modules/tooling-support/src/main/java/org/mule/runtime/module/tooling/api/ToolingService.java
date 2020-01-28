@@ -38,6 +38,8 @@ public interface ToolingService extends Initialisable, Stoppable {
    */
   ConnectivityTestingServiceBuilder newConnectivityTestingServiceBuilder();
 
+  void updateApplication(Application application, File appLocation);
+
   /**
    * Creates an {@link Application} from a set of resources.
    * <p/>

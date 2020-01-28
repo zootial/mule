@@ -70,6 +70,10 @@ public abstract class AbstractDeployableArtifact<D extends DeployableArtifactDes
 
   @Override
   public final void dispose() {
+    dispose(true);
+  }
+
+  public void dispose(boolean releaseResources) {
     withContextClassLoader(null, () -> log(miniSplash(format("Disposing %s '%s'", artifactType, getArtifactName()))));
 
     // moved wrapper logic into the actual implementation, as redeploy() invokes it directly, bypassing
@@ -87,7 +91,7 @@ public abstract class AbstractDeployableArtifact<D extends DeployableArtifactDes
 
       doDispose();
 
-      if (artifactCL != null) {
+      if (artifactCL != null && releaseResources) {
         if (isRegionClassLoaderMember(artifactCL)) {
           ((DisposableClassLoader) artifactCL.getParent()).dispose();
         } else if (artifactCL instanceof DisposableClassLoader) {
@@ -97,7 +101,9 @@ public abstract class AbstractDeployableArtifact<D extends DeployableArtifactDes
     } finally {
       // kill any refs to the old classloader to avoid leaks
       currentThread().setContextClassLoader(originalClassLoader);
-      deploymentClassLoader = null;
+      if (releaseResources) {
+        deploymentClassLoader = null;
+      }
     }
   }
 

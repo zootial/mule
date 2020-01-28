@@ -13,6 +13,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FileUtils.deleteQuietly;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.mule.runtime.config.internal.LazyMuleArtifactContext.SHARED_PARTITIONED_PERSISTENT_OBJECT_STORE_PATH;
@@ -96,6 +97,14 @@ public class DefaultToolingService implements ToolingService {
     this.domainFactory = domainFactory;
     this.applicationFactory = applicationFactory;
     this.applicationDescriptorFactory = applicationDescriptorFactory;
+  }
+
+  @Override
+  public void updateApplication(Application application, File appContent) {
+    application.dispose(false);
+    artifactFileWriter.writeContent(application.getArtifactName(), appContent);
+    application.lazyInit();
+    application.start();
   }
 
   /**

@@ -12,6 +12,7 @@ import static java.nio.file.Files.createDirectory;
 import static java.nio.file.Files.exists;
 import static java.nio.file.Files.walkFileTree;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.commons.io.FileUtils.deleteQuietly;
 import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
 import static org.mule.runtime.core.api.util.FileUtils.unzip;

@@ -195,6 +195,7 @@ public class DeploymentDirectoryWatcher implements Runnable {
     stopAppDirMonitorTimer();
 
     deploymentLock.lock();
+    deploymentLock.lock();
     try {
       stopArtifacts(applications);
       stopArtifacts(domains);

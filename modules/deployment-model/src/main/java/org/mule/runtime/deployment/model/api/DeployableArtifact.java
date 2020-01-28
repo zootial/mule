@@ -71,6 +71,10 @@ public interface DeployableArtifact<D extends DeployableArtifactDescriptor> exte
    */
   void dispose();
 
+  default void dispose(boolean releaseResources) {
+    dispose();
+  }
+
   /**
    * Do not use this method if the artifact initialization wasn't successful or the artifact has been destroyed.
    *
