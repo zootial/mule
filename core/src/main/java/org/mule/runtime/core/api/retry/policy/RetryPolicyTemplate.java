@@ -20,10 +20,12 @@ import org.reactivestreams.Publisher;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 
 /**
@@ -126,5 +128,28 @@ public interface RetryPolicyTemplate {
                                        Scheduler retryScheduler) {
     return createRetryInstance().applyPolicy(publisher, shouldRetry, onExhausted, errorFunction, retryScheduler);
 
+  }
+
+  /**
+   * Applies the retry policy in a non blocking manner by executing a task trough the {@code futureSupplier} and
+   * using a separate return {@link CompletableFuture} to communicate the outcome
+   *
+   * @param futureSupplier a {@link Supplier} which executes a task that returns a {@link CompletableFuture}
+   * @param shouldRetry    a predicate which evaluates each item to know if it should be retried or not
+   * @param onRetry        a {@link Consumer} that executes on each failed attempt over the obtained exception
+   * @param onExhausted    a {@link Consumer} that executes over the final exception when the retries have been exceeded
+   * @param errorFunction  a {@link Function} that transforms the final exception when the retries have been exceeded
+   * @param retryScheduler the {@link Scheduler} in which retry work is to be submitted.
+   * @param <T>            the generic type of the output {@link CompletableFuture}
+   * @return a {@link CompletableFuture}
+   * @since 4.2.2
+   */
+  default <T> CompletableFuture<T> applyPolicy(Supplier<CompletableFuture<T>> futureSupplier,
+                                               Predicate<Throwable> shouldRetry,
+                                               Consumer<Throwable> onRetry,
+                                               Consumer<Throwable> onExhausted,
+                                               Function<Throwable, Throwable> errorFunction,
+                                               Scheduler retryScheduler) {
+    return createRetryInstance().applyPolicy(futureSupplier, shouldRetry, onRetry, onExhausted, errorFunction, retryScheduler);
   }
 }

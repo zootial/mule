@@ -7,6 +7,7 @@
 package org.mule.extension.test.extension.reconnection;
 
 import static org.mule.runtime.api.connection.ConnectionValidationResult.success;
+
 import org.mule.runtime.api.connection.CachedConnectionProvider;
 import org.mule.runtime.api.connection.ConnectionException;
 import org.mule.runtime.api.connection.ConnectionProvider;
@@ -29,6 +30,7 @@ public class ReconnectableConnectionProvider implements CachedConnectionProvider
 
   public static volatile boolean fail;
   private int reconnectionAttempts = 0;
+  private int disconnectCalls = 0;
 
   @Override
   public ReconnectableConnection connect() throws ConnectionException {
@@ -40,14 +42,16 @@ public class ReconnectableConnectionProvider implements CachedConnectionProvider
       fail = false;
     }
 
-    ReconnectableConnection connection = new ReconnectableConnection(reconnectionAttempts);
+    ReconnectableConnection connection = new ReconnectableConnection(reconnectionAttempts, disconnectCalls);
     reconnectionAttempts = 0;
 
     return connection;
   }
 
   @Override
-  public void disconnect(ReconnectableConnection connection) {}
+  public void disconnect(ReconnectableConnection connection) {
+    disconnectCalls++;
+  }
 
   @Override
   public ConnectionValidationResult validate(ReconnectableConnection connection) {

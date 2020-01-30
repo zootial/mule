@@ -16,9 +16,11 @@ import org.mule.runtime.api.scheduler.Scheduler;
 import org.reactivestreams.Publisher;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * A RetryPolicy takes some action each time an exception occurs and returns a {@link PolicyStatus} which indicates whether the
@@ -35,6 +37,39 @@ public interface RetryPolicy {
    */
   PolicyStatus applyPolicy(Throwable cause);
 
+  default <T> CompletableFuture<T> applyPolicy(Supplier<CompletableFuture<T>> futureSupplier,
+                                               Predicate<Throwable> shouldRetry,
+                                               Consumer<Throwable> onRetry,
+                                               Consumer<Throwable> onExhausted,
+                                               Function<Throwable, Throwable> errorFunction,
+                                               Scheduler retryScheduler) {
+
+    CompletableFuture<T> completedFuture = new CompletableFuture<>();
+    try {
+      CompletableFuture<T> retry = futureSupplier.get();
+      retry.whenComplete((v, e) -> {
+        if (e != null) {
+          try {
+            e = errorFunction.apply(unwrap(e));
+            onExhausted.accept(e);
+          } finally {
+            completedFuture.completeExceptionally(e);
+          }
+        } else {
+          completedFuture.complete(v);
+        }
+      });
+    } catch (Throwable t) {
+      try {
+        t = errorFunction.apply(unwrap(t));
+        onExhausted.accept(t);
+      } finally {
+        completedFuture.completeExceptionally(t);
+      }
+    }
+
+    return completedFuture;
+  }
 
   /**
    * Applies the retry policy in a non blocking manner by transforming the given {@code publisher} into one configured to apply
