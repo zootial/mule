@@ -47,4 +47,8 @@ public class SpringArtifactContext implements ArtifactContext {
     return this.muleArtifactContext.getRegistry();
   }
 
+  @Override
+  public void reset() {
+    this.muleArtifactContext.refresh();
+  }
 }

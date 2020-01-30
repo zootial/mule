@@ -36,6 +36,7 @@ import static org.mule.runtime.config.internal.parsers.generic.AutoIdUtils.uniqu
 import static org.mule.runtime.core.api.config.MuleDeploymentProperties.MULE_LAZY_INIT_DEPLOYMENT_PROPERTY;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_MULE_CONFIGURATION;
 import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_SECURITY_MANAGER;
+import static org.mule.runtime.core.api.config.MuleProperties.OBJECT_STREAMING_MANAGER;
 import static org.mule.runtime.core.api.lifecycle.LifecycleUtils.initialiseIfNeeded;
 import static org.mule.runtime.core.api.util.ClassUtils.withContextClassLoader;
 import static org.mule.runtime.core.internal.metadata.cache.MetadataCacheManager.METADATA_CACHE_MANAGER_KEY;
@@ -67,6 +68,7 @@ import org.mule.runtime.config.internal.dsl.processor.ObjectTypeVisitor;
 import org.mule.runtime.config.internal.model.ComponentModel;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.config.bootstrap.ArtifactType;
+import org.mule.runtime.core.api.streaming.StreamingManager;
 import org.mule.runtime.core.api.transaction.TransactionManagerFactory;
 import org.mule.runtime.core.internal.connectivity.DefaultConnectivityTestingService;
 import org.mule.runtime.core.internal.metadata.MuleMetadataService;
@@ -87,6 +89,7 @@ import org.mule.runtime.extension.api.runtime.config.ConfigurationProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -126,7 +129,7 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
 
   private final Optional<ComponentModelInitializer> parentComponentModelInitializer;
 
-  private final ArtifactAstDependencyGraph graph;
+  private ArtifactAstDependencyGraph graph;
 
   private final Set<String> currentComponentLocationsRequested = new HashSet<>();
   private boolean appliedStartedPhaseRequest = false;
@@ -222,6 +225,29 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
     }
 
     initialize();
+  }
+
+
+  @Override
+  public void refresh() {
+    if (!getMuleContext().isInitialising()) {
+      this.artifactConfigResources = Arrays.stream(artifactConfigResources).map(cr -> {
+        try {
+          return new ConfigResource(cr.getResourceName());
+        } catch (IOException e) {
+          throw new MuleRuntimeException(createStaticMessage("Could not re create config resource", e));
+        }
+      }).toArray(ConfigResource[]::new);
+      this.applicationModel = createApplicationModel();
+      this.graph = generateFor(applicationModel);
+    }
+    super.refresh();
+    try {
+      //TODO: Fix this. When doing refresh, services are configured again and they are not initialised
+      initialiseIfNeeded(this.getMuleContext().getRegistry().<StreamingManager>lookupObject(OBJECT_STREAMING_MANAGER));
+    } catch (InitialisationException e) {
+      throw new MuleRuntimeException(e);
+    }
   }
 
   @Override
@@ -392,11 +418,11 @@ public class LazyMuleArtifactContext extends MuleArtifactContext
               .map(comp -> comp.getLocation().getLocation())
               .collect(toSet()));
 
-      if (copyOf(currentComponentLocationsRequested).equals(copyOf(requestedLocations)) &&
-          appliedStartedPhaseRequest == applyStartPhase) {
-        // Same minimalApplication has been requested, so we don't need to recreate the same beans.
-        return emptyList();
-      }
+      //if (copyOf(currentComponentLocationsRequested).equals(copyOf(requestedLocations)) &&
+      //    appliedStartedPhaseRequest == applyStartPhase) {
+      //  // Same minimalApplication has been requested, so we don't need to recreate the same beans.
+      //  return emptyList();
+      //}
 
       if (parentComponentModelInitializerAdapter.isPresent()) {
         parentComponentModelInitializerAdapter.get()

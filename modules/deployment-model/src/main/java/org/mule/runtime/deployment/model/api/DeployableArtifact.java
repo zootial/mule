@@ -75,6 +75,10 @@ public interface DeployableArtifact<D extends DeployableArtifactDescriptor> exte
     dispose();
   }
 
+  default void reset() {
+    //do nothing
+  }
+
   /**
    * Do not use this method if the artifact initialization wasn't successful or the artifact has been destroyed.
    *

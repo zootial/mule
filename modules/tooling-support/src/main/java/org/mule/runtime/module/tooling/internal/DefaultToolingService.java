@@ -101,10 +101,8 @@ public class DefaultToolingService implements ToolingService {
 
   @Override
   public void updateApplication(Application application, File appContent) {
-    application.dispose(false);
     artifactFileWriter.updateContents(application.getArtifactName(), appContent);
-    application.lazyInit();
-    application.start();
+    application.reset();
   }
 
   /**
@@ -347,6 +345,11 @@ public class DefaultToolingService implements ToolingService {
 
     protected ToolingApplicationWrapper(Application delegate) throws IOException {
       super(delegate);
+    }
+
+    @Override
+    public void reset() {
+      super.reset();
     }
 
     @Override

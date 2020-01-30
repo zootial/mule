@@ -50,6 +50,11 @@ public class DeployableArtifactWrapper<T extends DeployableArtifact<D>, D extend
   }
 
   @Override
+  public void reset() {
+    executeWithinArtifactClassLoader(() -> delegate.reset());
+  }
+
+  @Override
   public ArtifactClassLoader getArtifactClassLoader() {
     return delegate.getArtifactClassLoader();
   }

@@ -128,10 +128,6 @@ public class DefaultMuleApplication extends AbstractDeployableArtifact<Applicati
     }
   }
 
-  protected void newMethod() {
-
-  }
-
   @Override
   public void setMuleContextListener(MuleContextListener muleContextListener) {
     checkArgument(muleContextListener != null, "setMuleContextListener cannot be null");

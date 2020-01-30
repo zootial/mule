@@ -69,10 +69,16 @@ public abstract class AbstractDeployableArtifact<D extends DeployableArtifactDes
   }
 
   @Override
+  public void reset() {
+    artifactContext.reset();
+  }
+
+  @Override
   public final void dispose() {
     dispose(true);
   }
 
+  @Override
   public void dispose(boolean releaseResources) {
     withContextClassLoader(null, () -> log(miniSplash(format("Disposing %s '%s'", artifactType, getArtifactName()))));
 

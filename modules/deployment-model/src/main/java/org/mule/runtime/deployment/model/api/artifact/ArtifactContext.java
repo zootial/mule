@@ -30,4 +30,8 @@ public interface ArtifactContext {
    */
   Registry getRegistry();
 
+  default void reset() {
+    //do nothing
+  }
+
 }
