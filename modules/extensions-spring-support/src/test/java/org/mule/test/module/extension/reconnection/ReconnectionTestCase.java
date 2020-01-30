@@ -7,14 +7,21 @@
 package org.mule.test.module.extension.reconnection;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertThat;
+import static org.junit.rules.ExpectedException.none;
+import static org.mule.extension.test.extension.reconnection.ReconnectionOperations.closePagingProviderCalls;
+import static org.mule.extension.test.extension.reconnection.ReconnectionOperations.resetCounters;
 import static org.mule.runtime.core.api.util.ClassUtils.getFieldValue;
 import static org.mule.tck.probe.PollingProber.check;
 
 import org.mule.extension.test.extension.reconnection.ReconnectableConnection;
 import org.mule.extension.test.extension.reconnection.ReconnectableConnectionProvider;
 import org.mule.runtime.api.exception.MuleException;
+import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.lifecycle.Startable;
+import org.mule.runtime.api.streaming.object.CursorIterator;
+import org.mule.runtime.api.streaming.object.CursorIteratorProvider;
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.Processor;
 import org.mule.runtime.core.api.retry.policy.RetryPolicy;
@@ -22,10 +29,13 @@ import org.mule.runtime.core.api.retry.policy.RetryPolicyTemplate;
 import org.mule.test.module.extension.AbstractExtensionFunctionalTestCase;
 
 import java.time.Duration;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class ReconnectionTestCase extends AbstractExtensionFunctionalTestCase {
 
@@ -41,6 +51,9 @@ public class ReconnectionTestCase extends AbstractExtensionFunctionalTestCase {
       return event;
     }
   }
+
+  @Rule
+  public ExpectedException expectedException = none();
 
   @Override
   protected String getConfigFile() {
@@ -77,6 +90,51 @@ public class ReconnectionTestCase extends AbstractExtensionFunctionalTestCase {
   }
 
   @Test
+  public void connectionIsClosedDuringConnectionExceptionOnFirstPage() throws Exception {
+    resetCounters();
+    Iterator<ReconnectableConnection> iterator = getCursor("pagedOperation", 1);
+    ReconnectableConnection firstPage = iterator.next();
+    assertThat("Connection was not disconnected.", firstPage.getDisconnectCalls(), is(1));
+    assertThat("Paging provider was not closed.", closePagingProviderCalls, is(1));
+  }
+
+  @Test
+  public void connectionIsClosedDuringConnectionExceptionOnSecondPage() throws Exception {
+    resetCounters();
+    Iterator<ReconnectableConnection> iterator = getCursor("pagedOperation", 2);
+
+    ReconnectableConnection firstPage = iterator.next();
+    assertThat("Connection was disconnected.", firstPage.getDisconnectCalls(), is(0));
+    assertThat("Paging provider was closed.", closePagingProviderCalls, is(0));
+
+    ReconnectableConnection secondPage = iterator.next();
+    assertThat("Connection was not disconnected.", secondPage.getDisconnectCalls(), is(1));
+    assertThat("Paging provider was closed.", closePagingProviderCalls, is(0));
+  }
+
+  @Test
+  public void stickyConnectionIsClosedAndReconnectedDuringConnectionExceptionOnFirstPage() throws Exception {
+    resetCounters();
+    Iterator<ReconnectableConnection> iterator = getCursor("stickyPagedOperation", 1);
+    ReconnectableConnection firstPage = iterator.next();
+    assertThat("Connection was not disconnected.", firstPage.getDisconnectCalls(), is(1));
+    assertThat("Paging provider was not closed.", closePagingProviderCalls, is(1));
+  }
+
+  @Test
+  public void stickyConnectionIsNotReconnectedDuringConnectionExceptionOnSecondPage() throws Exception {
+    expectedException.expect(isA(MuleRuntimeException.class));
+    resetCounters();
+    Iterator<ReconnectableConnection> iterator = getCursor("stickyPagedOperation", 2);
+
+    ReconnectableConnection firstPage = iterator.next();
+    assertThat("Connection was disconnected.", firstPage.getDisconnectCalls(), is(0));
+    assertThat("Paging provider was closed.", closePagingProviderCalls, is(0));
+
+    iterator.next();
+  }
+
+  @Test
   public void getRetryPolicyTemplateFromConfig() throws Exception {
     RetryPolicyTemplate template = (RetryPolicyTemplate) flowRunner("getReconnectionFromConfig").run()
         .getMessage().getPayload().getValue();
@@ -104,5 +162,13 @@ public class ReconnectionTestCase extends AbstractExtensionFunctionalTestCase {
 
   private void switchConnection() throws Exception {
     flowRunner("switchConnection").run();
+  }
+
+  private <T> CursorIterator<T> getCursor(String flowName, Integer failOn) throws Exception {
+    CursorIteratorProvider provider =
+        (CursorIteratorProvider) flowRunner(flowName).withPayload(failOn).keepStreamsOpen().run().getMessage().getPayload()
+            .getValue();
+
+    return provider.openCursor();
   }
 }

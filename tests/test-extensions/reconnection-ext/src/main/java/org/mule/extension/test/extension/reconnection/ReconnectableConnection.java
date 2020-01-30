@@ -6,19 +6,25 @@
  */
 package org.mule.extension.test.extension.reconnection;
 
-
 /**
  * This class represents an extension connection just as example (there is no real connection with anything here c:).
  */
 public final class ReconnectableConnection {
 
   private final int reconnectionAttempts;
+  private final int disconnectCalls;
 
-  public ReconnectableConnection(int reconnectionAttempts) {
+  public ReconnectableConnection(int reconnectionAttempts, int disconnectCalls) {
     this.reconnectionAttempts = reconnectionAttempts;
+    this.disconnectCalls = disconnectCalls;
   }
 
   public int getReconnectionAttempts() {
     return reconnectionAttempts;
   }
+
+  public int getDisconnectCalls() {
+    return disconnectCalls;
+  }
+
 }
