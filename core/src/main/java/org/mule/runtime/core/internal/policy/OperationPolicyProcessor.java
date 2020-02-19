@@ -58,6 +58,7 @@ public class OperationPolicyProcessor implements ReactiveProcessor {
   @Override
   public Publisher<CoreEvent> apply(Publisher<CoreEvent> publisher) {
     return from(publisher)
+        .subscriberContext(ctx -> ctx.delete(POLICY_NEXT_OPERATION))
         .map(policyEventMapper::onOperationPolicyBegin)
         .doOnNext(event -> logPolicy(event.getContext().getCorrelationId(), policy.getPolicyId(),
                                      event, "Before operation"))
