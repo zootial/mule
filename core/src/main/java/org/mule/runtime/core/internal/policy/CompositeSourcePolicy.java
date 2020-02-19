@@ -251,7 +251,7 @@ public class CompositeSourcePolicy
     }
   }
 
-  private void logEvent(String eventId, String policyName, Supplier<String> message, String startingMessage) {
+  private static void logEvent(String eventId, String policyName, Supplier<String> message, String startingMessage) {
     if (LOGGER.isTraceEnabled()) {
       // TODO Remove event id when first policy generates it. MULE-14455
       LOGGER.trace("Event Id: " + eventId + ".\n" + startingMessage + policyName + "\n" + message.get());
@@ -270,7 +270,7 @@ public class CompositeSourcePolicy
     return event.getMessage().getAttributes().getValue().toString();
   }
 
-  private String getPolicyName(Policy policy) {
+  private static String getPolicyName(Policy policy) {
     return policy.getPolicyId();
   }
 
