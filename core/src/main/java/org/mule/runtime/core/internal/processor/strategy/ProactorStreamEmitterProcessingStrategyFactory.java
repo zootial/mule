@@ -13,13 +13,11 @@ import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.mule.runtime.core.api.processor.ReactiveProcessor.ProcessingType.BLOCKING;
 import static org.mule.runtime.core.api.processor.ReactiveProcessor.ProcessingType.CPU_INTENSIVE;
 import static org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger.THREAD_NOTIFICATION_LOGGER_CONTEXT_KEY;
-import static org.mule.runtime.core.privileged.event.PrivilegedEvent.setCurrentEvent;
 import static org.slf4j.LoggerFactory.getLogger;
 import static reactor.core.publisher.Flux.from;
 import static reactor.core.publisher.FluxSink.OverflowStrategy.BUFFER;
 import static reactor.core.publisher.Mono.subscriberContext;
 import static reactor.core.scheduler.Schedulers.fromExecutorService;
-
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.scheduler.Scheduler;
 import org.mule.runtime.api.scheduler.SchedulerService;
@@ -44,7 +42,6 @@ import java.util.function.IntUnaryOperator;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
-
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -198,7 +195,6 @@ public class ProactorStreamEmitterProcessingStrategyFactory extends ReactorStrea
                                                 Mono<CoreEvent> eventFlux) {
       if (isThreadLoggingEnabled) {
         return Mono.from(eventFlux)
-            .doOnNext(e -> setCurrentEvent(null))
             .flatMap(e -> subscriberContext()
                 .flatMap(ctx -> Mono.just(e).transform(processor)
                     .subscribeOn(fromExecutorService(new ThreadLoggingExecutorServiceDecorator(ctx
@@ -206,7 +202,6 @@ public class ProactorStreamEmitterProcessingStrategyFactory extends ReactorStrea
                                                                                                e.getContext().getId())))));
       } else {
         return Mono.from(eventFlux)
-            .doOnNext(e -> setCurrentEvent(null))
             .publishOn(fromExecutorService(decorateScheduler(processorScheduler)))
             .transform(processor);
       }
