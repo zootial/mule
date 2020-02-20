@@ -17,11 +17,9 @@ import static org.mule.runtime.core.api.rx.Exceptions.rxExceptionToMuleException
 import static org.mule.runtime.core.api.rx.Exceptions.unwrap;
 import static org.mule.runtime.core.internal.event.DefaultEventContext.child;
 import static org.mule.runtime.core.internal.event.EventQuickCopy.quickCopy;
-import static reactor.core.publisher.Flux.create;
 import static reactor.core.publisher.Mono.from;
 import static reactor.core.publisher.Mono.just;
 import static reactor.core.publisher.Mono.subscriberContext;
-import static reactor.util.context.Context.empty;
 
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
@@ -62,6 +60,7 @@ import org.slf4j.LoggerFactory;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 /**
  * Some convenience methods for message processors.
@@ -478,8 +477,8 @@ public class MessageProcessors {
                     // This Either here is used to propagate errors. If the error is sent directly through the merged with Flux,
                     // it will be cancelled, ignoring the onErrorcontinue of the parent Flux.
                     .doOnComplete(() -> errorSwitchSinkSinkRef.complete())
-                    .mergeWith(create(errorSwitchSinkSinkRef)
-                        .subscriberContext(ctx2 -> empty()))
+                    .mergeWith(errorSwitchSinkSinkRef.flux()
+                        .subscriberContext(ctx2 -> Context.empty()))
 
                     .map(childContextResponseMapper())
                     .distinct(event -> (BaseEventContext) event.getContext(), () -> seenContexts)
