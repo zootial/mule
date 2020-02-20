@@ -58,7 +58,6 @@ import org.mule.runtime.core.internal.message.ErrorBuilder;
 import org.mule.runtime.core.internal.message.InternalEvent;
 import org.mule.runtime.core.internal.message.InternalEvent.Builder;
 import org.mule.runtime.core.internal.policy.PolicyManager;
-import org.mule.runtime.core.internal.policy.SourcePolicy;
 import org.mule.runtime.core.internal.policy.SourcePolicyFailureResult;
 import org.mule.runtime.core.internal.policy.SourcePolicySuccessResult;
 import org.mule.runtime.core.internal.processor.interceptor.ReactiveInterceptorSourceCallbackAdapter;
@@ -157,18 +156,17 @@ public class ModuleFlowProcessingPhase
 
       try {
         FlowProcessor flowExecutionProcessor = new FlowProcessor(template, flowConstruct);
-        final SourcePolicy policy =
-            policyManager.createSourcePolicyInstance(messageSource, templateEvent, flowExecutionProcessor, template);
         final PhaseContext phaseContext =
             new PhaseContext(template, messageProcessContext, phaseResultNotifier, terminateConsumer);
-
         just(templateEvent)
             .doOnNext(onMessageReceived(template, messageProcessContext, flowConstruct))
             // Check backpressure against source dependant strategy
             .doOnNext(flowConstruct::checkBackpressure)
             // Process policy and in turn flow emitting Either<SourcePolicyFailureResult,SourcePolicySuccessResult>> when
             // complete.
-            .flatMap(request -> from(policy.process(request, template)))
+            .flatMap(request -> from(policyManager
+                .createSourcePolicyInstance(messageSource, templateEvent, flowExecutionProcessor, template)
+                .process(request, template)))
             // In case backpressure was fired, the exception will be propagated as a SourcePolicyFailureResult, wrapping inside
             // the backpressure exception
             .onErrorResume(FlowBackPressureException.class,
