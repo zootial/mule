@@ -103,7 +103,6 @@ public class BlockingProcessingStrategyFactory implements ProcessingStrategyFact
         return processor;
       }
     }
-
   }
 
   public static FluxSinkRecorder<CoreEvent> processorAsSink(ReactiveProcessor processor, Context ctx) {
