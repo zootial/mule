@@ -60,7 +60,6 @@ import org.slf4j.LoggerFactory;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.context.Context;
 
 /**
  * Some convenience methods for message processors.
@@ -477,8 +476,7 @@ public class MessageProcessors {
                     // This Either here is used to propagate errors. If the error is sent directly through the merged with Flux,
                     // it will be cancelled, ignoring the onErrorcontinue of the parent Flux.
                     .doOnComplete(() -> errorSwitchSinkSinkRef.complete())
-                    .mergeWith(errorSwitchSinkSinkRef.flux()
-                        .subscriberContext(ctx2 -> Context.empty()))
+                    .mergeWith(errorSwitchSinkSinkRef.flux())
 
                     .map(childContextResponseMapper())
                     .distinct(event -> (BaseEventContext) event.getContext(), () -> seenContexts)
