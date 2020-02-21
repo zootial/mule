@@ -6,6 +6,7 @@
  */
 package org.mule.runtime.core.internal.processor.strategy;
 
+import static org.mule.runtime.core.api.processor.ReactiveProcessor.ProcessingType.CPU_LITE_ASYNC;
 import static org.mule.runtime.core.api.rx.Exceptions.unwrap;
 import static org.mule.runtime.core.api.rx.Exceptions.wrapFatal;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -73,32 +74,35 @@ public class BlockingProcessingStrategyFactory implements ProcessingStrategyFact
 
     @Override
     public ReactiveProcessor onProcessor(ReactiveProcessor processor) {
-      return publisher -> subscriberContext()
-          .flatMapMany(ctx -> {
-            final FluxSinkRecorder<CoreEvent> processSink = processorAsSink(processor, ctx);
+      if (processor.getProcessingType() == CPU_LITE_ASYNC) {
+        return publisher -> subscriberContext()
+            .flatMapMany(ctx -> {
+              final FluxSinkRecorder<CoreEvent> processSink = processorAsSink(processor, ctx);
 
-            return from(publisher)
-                .doOnComplete(() -> processSink.complete())
-                .onErrorContinue((t, e) -> processSink.error(t))
-                .handle((event, sink) -> {
-                  try {
-                    final CompletableFuture<CoreEvent> response = new CompletableFuture<>();
-                    BlockingExecutionContext.from(event).registerFuture(processor, event.getContext().getId(), response);
-                    processSink.next(event);
+              return from(publisher)
+                  .doOnComplete(() -> processSink.complete())
+                  .onErrorContinue((t, e) -> processSink.error(t))
+                  .handle((event, sink) -> {
+                    try {
+                      final CompletableFuture<CoreEvent> response = new CompletableFuture<>();
+                      BlockingExecutionContext.from(event).registerFuture(processor, event.getContext().getId(), response);
+                      processSink.next(event);
 
-                    CoreEvent result = response.get();
-                    if (result != null) {
-                      sink.next(result);
+                      CoreEvent result = response.get();
+                      if (result != null) {
+                        sink.next(result);
+                      }
+                    } catch (ExecutionException throwable) {
+                      sink.error(wrapFatal(unwrap(throwable.getCause())));
+                    } catch (Throwable throwable) {
+                      sink.error(wrapFatal(unwrap(throwable)));
                     }
-                  } catch (ExecutionException throwable) {
-                    sink.error(wrapFatal(unwrap(throwable.getCause())));
-                  } catch (Throwable throwable) {
-                    sink.error(wrapFatal(unwrap(throwable)));
-                  }
-                });
-          });
+                  });
+            });
+      } else {
+        return processor;
+      }
     }
-
   }
 
   public static FluxSinkRecorder<CoreEvent> processorAsSink(ReactiveProcessor processor, Context ctx) {
