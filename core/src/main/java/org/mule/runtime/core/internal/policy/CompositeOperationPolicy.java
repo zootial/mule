@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.reactivestreams.Publisher;
@@ -91,6 +92,8 @@ public class CompositeOperationPolicy
                                   OperationPolicyProcessorFactory operationPolicyProcessorFactory) {
     super(parameterizedPolicies, operationPolicyParametersTransformer);
     this.operationPolicyProcessorFactory = operationPolicyProcessorFactory;
+    initProcessor();
+
     Supplier<FluxSink<CoreEvent>> factory = new OperationWithPoliciesFluxObjectFactory(this);
     this.policySinks = newBuilder()
         .removalListener((String key, FluxSinkSupplier<CoreEvent> value, RemovalCause cause) -> {
@@ -153,20 +156,33 @@ public class CompositeOperationPolicy
   @Override
   protected Publisher<CoreEvent> applyNextOperation(Publisher<CoreEvent> eventPub, Policy lastPolicy) {
     return Flux.from(eventPub)
-        .flatMap(event -> {
-          OperationParametersProcessor parametersProcessor =
-              ((InternalEvent) event).getInternalParameter(POLICY_OPERATION_PARAMETERS_PROCESSOR);
-          Map<String, Object> parametersMap = new HashMap<>(parametersProcessor.getOperationParameters());
-
-          if (getParametersTransformer().isPresent()) {
-            parametersMap.putAll(getParametersTransformer().get().fromMessageToParameters(event.getMessage()));
-          }
-
-          OperationExecutionFunction operationExecutionFunction =
-              ((InternalEvent) event).getInternalParameter(POLICY_OPERATION_OPERATION_EXEC_FUNCTION);
-          return operationExecutionFunction.execute(parametersMap, event);
-        })
+        .flatMap(new OperationDispatcher(getParametersTransformer()))
         .map(response -> quickCopy(response, singletonMap(POLICY_OPERATION_NEXT_OPERATION_RESPONSE, response)));
+  }
+
+  private static final class OperationDispatcher implements Function<CoreEvent, Publisher<CoreEvent>> {
+
+    private final Optional<OperationPolicyParametersTransformer> parametersTransformer;
+
+    public OperationDispatcher(Optional<OperationPolicyParametersTransformer> parametersTransformer) {
+      this.parametersTransformer = parametersTransformer;
+    }
+
+    @Override
+    public Publisher<CoreEvent> apply(CoreEvent event) {
+      OperationParametersProcessor parametersProcessor =
+          ((InternalEvent) event).getInternalParameter(POLICY_OPERATION_PARAMETERS_PROCESSOR);
+      Map<String, Object> parametersMap = new HashMap<>(parametersProcessor.getOperationParameters());
+
+      if (parametersTransformer.isPresent()) {
+        parametersMap.putAll(parametersTransformer.get().fromMessageToParameters(event.getMessage()));
+      }
+
+      OperationExecutionFunction operationExecutionFunction =
+          ((InternalEvent) event).getInternalParameter(POLICY_OPERATION_OPERATION_EXEC_FUNCTION);
+      return operationExecutionFunction.execute(parametersMap, event);
+    }
+
   }
 
   /**
