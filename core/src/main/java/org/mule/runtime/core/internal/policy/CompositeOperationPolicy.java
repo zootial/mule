@@ -30,6 +30,8 @@ import org.mule.runtime.core.internal.util.rx.RoundRobinFluxSinkSupplier;
 import org.mule.runtime.core.internal.util.rx.TransactionAwareFluxSinkSupplier;
 import org.mule.runtime.core.privileged.event.BaseEventContext;
 
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,19 +91,25 @@ public class CompositeOperationPolicy
                                   OperationPolicyProcessorFactory operationPolicyProcessorFactory) {
     super(parameterizedPolicies, operationPolicyParametersTransformer);
     this.operationPolicyProcessorFactory = operationPolicyProcessorFactory;
+    Supplier<FluxSink<CoreEvent>> factory = new OperationWithPoliciesFluxObjectFactory(this);
     this.policySinks = newBuilder()
         .removalListener((String key, FluxSinkSupplier<CoreEvent> value, RemovalCause cause) -> {
           value.dispose();
         })
         .build(componentLocation -> {
-          Supplier<FluxSink<CoreEvent>> factory = new OperationWithPoliciesFluxObjectFactory();
           return new TransactionAwareFluxSinkSupplier<>(factory,
                                                         new RoundRobinFluxSinkSupplier<>(getRuntime().availableProcessors(),
                                                                                          factory));
         });
   }
 
-  private final class OperationWithPoliciesFluxObjectFactory implements Supplier<FluxSink<CoreEvent>> {
+  private static final class OperationWithPoliciesFluxObjectFactory implements Supplier<FluxSink<CoreEvent>> {
+
+    private final Reference<CompositeOperationPolicy> compositeOperationPolicy;
+
+    public OperationWithPoliciesFluxObjectFactory(CompositeOperationPolicy compositeOperationPolicy) {
+      this.compositeOperationPolicy = new WeakReference<>(compositeOperationPolicy);
+    }
 
     @Override
     public FluxSink<CoreEvent> get() {
@@ -109,7 +117,7 @@ public class CompositeOperationPolicy
 
       Flux<CoreEvent> policyFlux =
           Flux.create(sinkRef)
-              .transform(getExecutionProcessor())
+              .transform(compositeOperationPolicy.get().getExecutionProcessor())
               .doOnNext(result -> {
                 final BaseEventContext childContext = getStoredChildContext(result);
                 if (!childContext.isComplete()) {
@@ -214,6 +222,7 @@ public class CompositeOperationPolicy
 
   @Override
   public Disposable deferredDispose() {
+    final LoadingCache<String, FluxSinkSupplier<CoreEvent>> policySinks = this.policySinks;
     return () -> {
       policySinks.invalidateAll();
     };
