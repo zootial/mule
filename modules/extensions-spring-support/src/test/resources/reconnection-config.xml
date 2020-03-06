@@ -28,7 +28,9 @@
     </flow>
 
     <flow name="pagedOperation">
-        <reconnection:paged-operation failOn="#[payload]" withErrorType="#[vars.errorType]" config-ref="reconnection_Config"/>
+        <reconnection:paged-operation failOn="#[payload]" withErrorType="#[vars.errorType]" config-ref="reconnection_Config">
+            <reconnect count="2" frequency="50" />
+        </reconnection:paged-operation>
     </flow>
 
     <flow name="stickyPagedOperation">

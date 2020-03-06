@@ -20,7 +20,6 @@ import static org.mule.runtime.module.extension.internal.util.ReconnectionUtils.
 import static org.mule.runtime.module.extension.internal.util.ReconnectionUtils.isPartOfActiveTransaction;
 import static org.mule.runtime.module.extension.internal.util.ReconnectionUtils.shouldRetry;
 import static reactor.core.publisher.Mono.from;
-import static reactor.core.publisher.Mono.just;
 
 import org.mule.runtime.api.connection.ConnectionException;
 import org.mule.runtime.api.connection.ConnectionHandler;
@@ -39,10 +38,12 @@ import org.mule.runtime.module.extension.internal.runtime.connectivity.Extension
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 /**
  * Implementation of {@link Producer} that uses an instance of {@link PagingProvider} to get its results.
@@ -117,7 +118,18 @@ public final class PagingProviderProducer<T> implements Producer<List<T>> {
    */
   private <R> R performWithConnection(Function<Object, R> function) {
     try {
-      return from(retryPolicy.applyPolicy(just(withConnection(function, supportsOAuth)),
+      Mono<R> task = Mono.fromFuture(() -> {
+        CompletableFuture<R> future = new CompletableFuture<>();
+        try {
+          future.complete(withConnection(function, supportsOAuth));
+        } catch (Exception e) {
+          future.completeExceptionally(e);
+        }
+
+        return future;
+      });
+
+      return from(retryPolicy.applyPolicy(task,
                                           e -> !isFirstPage && !delegate.useStickyConnections()
                                               && shouldRetry(e, executionContext),
                                           NULL_THROWABLE_CONSUMER,
