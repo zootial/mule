@@ -7,9 +7,9 @@
 
 package org.mule.runtime.module.extension.internal.runtime.streaming;
 
-import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.function.Function.identity;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
+import static org.mule.runtime.core.api.rx.Exceptions.unwrap;
 import static org.mule.runtime.core.api.util.ExceptionUtils.extractConnectionException;
 import static org.mule.runtime.core.internal.util.FunctionalUtils.safely;
 import static org.mule.runtime.module.extension.internal.ExtensionProperties.COMPONENT_CONFIG_NAME;
@@ -19,6 +19,8 @@ import static org.mule.runtime.module.extension.internal.util.MuleExtensionUtils
 import static org.mule.runtime.module.extension.internal.util.ReconnectionUtils.NULL_THROWABLE_CONSUMER;
 import static org.mule.runtime.module.extension.internal.util.ReconnectionUtils.isPartOfActiveTransaction;
 import static org.mule.runtime.module.extension.internal.util.ReconnectionUtils.shouldRetry;
+import static reactor.core.publisher.Mono.from;
+import static reactor.core.publisher.Mono.just;
 
 import org.mule.runtime.api.connection.ConnectionException;
 import org.mule.runtime.api.connection.ConnectionHandler;
@@ -37,8 +39,6 @@ import org.mule.runtime.module.extension.internal.runtime.connectivity.Extension
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -116,26 +116,19 @@ public final class PagingProviderProducer<T> implements Producer<List<T>> {
    * @return
    */
   private <R> R performWithConnection(Function<Object, R> function) {
-    if (retryPolicy.isEnabled()) {
-      CompletableFuture<R> future = retryPolicy.applyPolicy(() -> completedFuture(withConnection(function, supportsOAuth)),
-                                                            e -> !isFirstPage && !delegate.useStickyConnections()
-                                                                && shouldRetry(e, executionContext),
-                                                            NULL_THROWABLE_CONSUMER,
-                                                            NULL_THROWABLE_CONSUMER,
-                                                            identity(),
-                                                            executionContext.getCurrentScheduler());
-      try {
-        return future.get();
-      } catch (ExecutionException e) {
-        if (e.getCause() instanceof RuntimeException) {
-          throw (RuntimeException) e.getCause();
-        }
-        throw new MuleRuntimeException(createStaticMessage(COULD_NOT_EXECUTE), e.getCause());
-      } catch (InterruptedException e) {
-        throw new MuleRuntimeException(createStaticMessage(COULD_NOT_EXECUTE), e);
+    try {
+      return from(retryPolicy.applyPolicy(just(withConnection(function, supportsOAuth)),
+                                          e -> !isFirstPage && !delegate.useStickyConnections()
+                                              && shouldRetry(e, executionContext),
+                                          NULL_THROWABLE_CONSUMER,
+                                          identity(),
+                                          executionContext.getCurrentScheduler())).block();
+    } catch (Throwable t) {
+      t = unwrap(t);
+      if (t instanceof RuntimeException) {
+        throw (RuntimeException) t;
       }
-    } else {
-      return withConnection(function, supportsOAuth);
+      throw new MuleRuntimeException(createStaticMessage(COULD_NOT_EXECUTE), t);
     }
   }
 
