@@ -48,7 +48,6 @@ import org.hamcrest.Matcher;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
 
 import org.mule.functional.api.component.TestConnectorQueueHandler;
 import org.mule.runtime.api.component.Component;
@@ -63,8 +62,9 @@ import org.mule.tck.junit4.FlakinessDetectorTestRunner;
 import org.mule.tck.junit4.FlakyTest;
 import org.mule.test.heisenberg.extension.HeisenbergSource;
 import org.mule.test.module.extension.AbstractExtensionFunctionalTestCase;
+import org.mule.test.runner.RunnerDelegateTo;
 
-@RunWith(FlakinessDetectorTestRunner.class)
+@RunnerDelegateTo(FlakinessDetectorTestRunner.class)
 public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctionalTestCase {
 
   public static final int TIMEOUT_MILLIS = 50000;

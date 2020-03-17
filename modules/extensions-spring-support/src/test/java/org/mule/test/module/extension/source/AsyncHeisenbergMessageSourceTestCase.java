@@ -14,11 +14,11 @@ import static org.mule.test.heisenberg.extension.AsyncHeisenbergSource.completio
 
 import org.mule.tck.junit4.FlakinessDetectorTestRunner;
 import org.mule.tck.junit4.FlakyTest;
+import org.mule.test.runner.RunnerDelegateTo;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-@RunWith(FlakinessDetectorTestRunner.class)
+@RunnerDelegateTo(FlakinessDetectorTestRunner.class)
 public class AsyncHeisenbergMessageSourceTestCase extends HeisenbergMessageSourceTestCase {
 
   @Override
