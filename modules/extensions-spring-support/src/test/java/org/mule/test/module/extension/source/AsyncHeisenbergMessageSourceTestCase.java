@@ -12,8 +12,13 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mule.test.heisenberg.extension.AsyncHeisenbergSource.completionCallback;
 
-import org.junit.Test;
+import org.mule.tck.junit4.FlakinessDetectorTestRunner;
+import org.mule.tck.junit4.FlakyTest;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+@RunWith(FlakinessDetectorTestRunner.class)
 public class AsyncHeisenbergMessageSourceTestCase extends HeisenbergMessageSourceTestCase {
 
   @Override
@@ -34,6 +39,7 @@ public class AsyncHeisenbergMessageSourceTestCase extends HeisenbergMessageSourc
   }
 
   @Test
+  @FlakyTest(times = 100)
   public void asyncSource() throws Exception {
     startFlow("source");
 
@@ -48,6 +54,7 @@ public class AsyncHeisenbergMessageSourceTestCase extends HeisenbergMessageSourc
   }
 
   @Test
+  @FlakyTest(times = 100)
   public void asyncOnException() throws Exception {
     startFlow("sourceFailed");
 
