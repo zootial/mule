@@ -215,11 +215,15 @@ public class HeisenbergSource extends Source<String, Object> {
                                    @Optional boolean propagateError,
                                    NotificationEmitter notificationEmitter) {
     LOGGER.error("onError() - Start");
-    LOGGER.error(error.getErrorMessage());
-    if (error.getCause() != null) {
-      LOGGER.error("onError() - Cause");
-      LOGGER.error(error.getCause());
-      LOGGER.error(error.getCause().getMessage());
+    if (error != null) {
+      LOGGER.error(error.getErrorMessage());
+      if (error.getCause() != null) {
+        LOGGER.error("onError() - Cause");
+        LOGGER.error(error.getCause());
+        LOGGER.error(error.getCause().getMessage());
+      }
+    } else {
+      LOGGER.error("Error was null");
     }
 
     gatheredMoney = -1;
