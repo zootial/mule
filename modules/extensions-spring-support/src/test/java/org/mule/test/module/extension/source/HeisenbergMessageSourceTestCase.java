@@ -67,7 +67,7 @@ import org.mule.test.runner.RunnerDelegateTo;
 @RunnerDelegateTo(FlakinessDetectorTestRunner.class)
 public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctionalTestCase {
 
-  public static final int TIMEOUT_MILLIS = 50000;
+  public static final int TIMEOUT_MILLIS = 20000;
   public static final int POLL_DELAY_MILLIS = 1000;
   public static final int TIME_WAIT_MILLIS = 3000;
 
@@ -101,7 +101,7 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void source() throws Exception {
     startFlow("source");
 
@@ -109,7 +109,7 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void sourceRestartedWithDynamicConfig() throws Exception {
     final Long gatheredMoney = HeisenbergSource.gatheredMoney;
     startFlow("source");
@@ -148,7 +148,7 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void onException() throws Exception {
     startFlow("sourceFailed");
     assertSourceFailed();
@@ -161,21 +161,21 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void enrichExceptionOnStart() throws Exception {
     expectedException.expectMessage(ENRICHED_MESSAGE + CORE_POOL_SIZE_ERROR_MESSAGE);
     startFlow("sourceFailedOnStart");
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void reconnectWithEnrichedException() throws Exception {
     startFlow("sourceFailedOnRuntime");
     probe(TIMEOUT_MILLIS, POLL_DELAY_MILLIS, () -> sourceTimesStarted > 2);
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void sourceOnSuccessCallsOnTerminate() throws Exception {
     startFlow("source");
 
@@ -187,7 +187,7 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void sourceFailsOnSuccessParametersCallsOnErrorAndOnTerminate() throws Exception {
     startFlow("sourceWithInvalidSuccessParameter");
 
@@ -202,7 +202,7 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void sourceFailsOnSuccessBodyCallsOnErrorAndOnTerminate() throws Exception {
     startFlow("sourceFailsOnSuccessBodyCallsOnErrorAndOnTerminate");
 
@@ -217,7 +217,7 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void sourceFailsOnSuccessAndOnErrorParametersCallsOnTerminate() throws Exception {
     startFlow("sourceWithInvalidSuccessAndErrorParameters");
 
@@ -237,7 +237,7 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void sourceFailsInsideOnErrorAndCallsOnTerminate() throws Exception {
     startFlow("sourceFailsInsideOnError");
 
@@ -251,21 +251,21 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void failureInFlowCallsOnErrorDirectlyAndHandlesItCorrectly() throws Exception {
     startFlow("failureInFlowCallsOnErrorDirectly");
     probe(TIMEOUT_MILLIS, POLL_DELAY_MILLIS, () -> assertState(false, true, true));
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void failureInFlowErrorHandlerCallsOnErrorDirectlyAndHandlesItCorrectly() throws Exception {
     startFlow("failureInFlowErrorHandlerCallsOnErrorDirectly");
     probe(TIMEOUT_MILLIS, POLL_DELAY_MILLIS, () -> assertState(false, true, true));
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void failureInFlowCallsOnErrorDirectlyAndFailsHandlingIt() throws Exception {
     startFlow("failureInFlowCallsOnErrorDirectlyAndFailsHandlingIt");
     probe(TIMEOUT_MILLIS, POLL_DELAY_MILLIS, () -> assertState(false, false, true));
