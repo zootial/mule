@@ -39,7 +39,7 @@ public class AsyncHeisenbergMessageSourceTestCase extends HeisenbergMessageSourc
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void asyncSource() throws Exception {
     startFlow("source");
 
@@ -54,7 +54,7 @@ public class AsyncHeisenbergMessageSourceTestCase extends HeisenbergMessageSourc
   }
 
   @Test
-  @FlakyTest(times = 100)
+  @FlakyTest(times = 20)
   public void asyncOnException() throws Exception {
     startFlow("sourceFailed");
 
