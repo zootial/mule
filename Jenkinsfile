@@ -11,7 +11,7 @@ Map pipelineParams = [ "upstreamProjects" : UPSTREAM_PROJECTS_LIST.join(','),
                       // "mavenSettingsXmlId" : "mule-runtime-maven-settings-MuleSettings",
                        "mavenAdditionalArgs" : "-Djava.net.preferIPv4Stack=true",
                        "mavenCompileGoal" : "clean install -U -DskipTests -DskipITs -Dinvoker.skip=true -Darchetype.test.skip -Dmaven.javadoc.skip",
-                       "mavenTestGoal" : "verify -Dtest=AsyncHeisenbergMessageSourceTestCase -DfailIfNoTests=false",
+                       "mavenTestGoal" : "verify -Dtest='org.mule.test.module.extension.source.*TestCase' -DfailIfNoTests=false",
                        "projectType" : "Runtime" ]
 
 runtimeBuild(pipelineParams)
