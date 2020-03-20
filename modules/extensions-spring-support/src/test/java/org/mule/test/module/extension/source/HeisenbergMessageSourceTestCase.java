@@ -68,7 +68,7 @@ import org.mule.test.runner.RunnerDelegateTo;
 public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctionalTestCase {
 
   public static final int TIMEOUT_MILLIS = 20000;
-  public static final int POLL_DELAY_MILLIS = 1000;
+  public static final int POLL_DELAY_MILLIS = 500;
   public static final int TIME_WAIT_MILLIS = 3000;
 
   private static final String OUT = "out";
@@ -168,7 +168,7 @@ public class HeisenbergMessageSourceTestCase extends AbstractExtensionFunctional
   }
 
   @Test
-  @FlakyTest(times = 20)
+  @FlakyTest(times = 2)
   public void reconnectWithEnrichedException() throws Exception {
     startFlow("sourceFailedOnRuntime");
     probe(TIMEOUT_MILLIS, POLL_DELAY_MILLIS, () -> sourceTimesStarted > 2);
