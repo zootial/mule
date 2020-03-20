@@ -91,7 +91,6 @@ public class PollingProber implements Prober {
     Timeout timeout = new Timeout(timeoutMillis);
 
     while (true) {
-      LOGGER.error("Probe poll: " + probe.describeFailure());
       if (probe.isSatisfied()) {
         LOGGER.error("Probe poll: Is Satisfied");
         return true;
@@ -99,6 +98,7 @@ public class PollingProber implements Prober {
         LOGGER.error("Probe poll: hasTimedOut()");
         return false;
       } else {
+        LOGGER.error("Probe poll: " + probe.describeFailure());
         LOGGER.error("Probe poll: Waiting " + pollDelayMillis);
         waitFor(pollDelayMillis);
       }

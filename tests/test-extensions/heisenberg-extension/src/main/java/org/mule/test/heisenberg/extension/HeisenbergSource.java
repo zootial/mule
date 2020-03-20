@@ -158,6 +158,7 @@ public class HeisenbergSource extends Source<String, Object> {
     LOGGER.error("onStart() - Start");
 
     checkArgument(heisenberg != null, "config not injected");
+    LOGGER.error(HeisenbergExtension.sourceTimesStarted);
     HeisenbergExtension.sourceTimesStarted++;
     configName = refName;
     location = componentLocation.getLocation();
@@ -291,6 +292,7 @@ public class HeisenbergSource extends Source<String, Object> {
   }
 
   private Result<String, Object> makeResult(SourceCallback sourceCallback) {
+    LOGGER.error("Initial batch number: " + initialBatchNumber);
     if (initialBatchNumber < 0) {
       sourceCallback.onConnectionException(new ConnectionException(INITIAL_BATCH_NUMBER_ERROR_MESSAGE));
       return null;
